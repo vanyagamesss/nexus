@@ -1,0 +1,21 @@
+{
+  "name": "NEXUS — команда ИИ-агентов",
+  "short_name": "NEXUS",
+  "description": "Локальная система управления командой ИИ-агентов: LLM-провайдеры, инструменты, MCP и метрики узла.",
+  "lang": "ru",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#07090F",
+  "theme_color": "#07090F",
+  "categories": ["productivity", "utilities"],
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

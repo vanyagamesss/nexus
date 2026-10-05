@@ -1,0 +1,16 @@
+# NEXUS runtime data: secrets, keys, chats, runs — reseeded automatically on start
+nexus/data/
+# local junk / screenshots
+--full-page
+*.png
+# node / editors / OS
+node_modules/
+*.log
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+# temp
+*.tmp
+*.bak
