@@ -378,6 +378,9 @@ function toolSchemas(mode, agent, programs) {
   const perms = (agent && agent.permissions) || { programs: [] };
   const runnable = (programs || []).filter((p) => perms.programs.includes(p.id) && p.perms && p.perms.run);
   if (mode === 'full' && runnable.length) {
+    /* Динамическая версия заменяет статичную: два одинаковых имени роняют API 400 */
+    const ix = out.findIndex((s) => s && s.function && s.function.name === 'run_program');
+    if (ix >= 0) out.splice(ix, 1);
     const list = runnable.map((p) => `${p.id} — ${p.name} (${p.path})`).join('; ');
     out.push({
       type: 'function',
@@ -396,13 +399,14 @@ function toolSchemas(mode, agent, programs) {
     });
   }
 
-  /* Мост ввода и мощь ПК: только в полном режиме и только с явного разрешения */
+  /* Мост ввода и мощь ПК: только в полном режиме и только с явного разрешения.
+     Пропуск несуществующих имён — массив инструментов никогда не содержит дыр. */
   if (mode === 'full' && perms.input === true) {
-    for (const n of INPUT_TOOLS) out.push(inputSchemas[n]);
-    for (const n of Object.keys(browserSchemas)) out.push(browserSchemas[n]);
-    for (const n of POWER_TOOLS) out.push(powerSchemas[n]);
+    for (const n of INPUT_TOOLS) if (inputSchemas[n]) out.push(inputSchemas[n]);
+    for (const n of Object.keys(browserSchemas)) if (browserSchemas[n]) out.push(browserSchemas[n]);
+    for (const n of POWER_TOOLS) if (powerSchemas[n]) out.push(powerSchemas[n]);
   }
-  return out;
+  return out.filter(Boolean);
 }
 
 /* ---------------------------------------------------------------- реализации */
@@ -1419,6 +1423,18 @@ const powerSchemas = {
           text: str('Текст для записи (только для set, до 4000 символов)'),
         },
         required: ['action'],
+      },
+    },
+  },
+  pc_process_kill: {
+    type: 'function',
+    function: {
+      name: 'pc_process_kill',
+      description: 'Завершить процесс по pid. Системные процессы заблокированы. Только с явного разрешения.',
+      parameters: {
+        type: 'object',
+        properties: { pid: { type: 'integer', description: 'PID процесса из pc_processes' } },
+        required: ['pid'],
       },
     },
   },

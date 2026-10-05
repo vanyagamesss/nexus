@@ -722,11 +722,13 @@ async function streamAnthropic(cfg, payload, onEvent, signal) {
   };
   if (sys.length) body.system = sys.map((s) => s.text).join('\n\n');
   if (payload.tools) {
-    body.tools = payload.tools.map((t) => ({
-      name: t.function.name,
-      description: t.function.description,
-      input_schema: t.function.parameters,
-    }));
+    body.tools = payload.tools
+      .filter((t) => t && t.function && typeof t.function.name === 'string' && t.function.name)
+      .map((t) => ({
+        name: t.function.name,
+        description: t.function.description,
+        input_schema: t.function.parameters,
+      }));
   }
 
   const res = await request(joinUrl(cfg.baseUrl, 'messages'), {
@@ -912,11 +914,13 @@ async function streamGemini(cfg, payload, onEvent, signal) {
   if (payload.tools) {
     body.tools = [
       {
-        functionDeclarations: payload.tools.map((t) => ({
-          name: t.function.name,
-          description: t.function.description,
-          parameters: cleanSchema(t.function.parameters),
-        })),
+        functionDeclarations: payload.tools
+          .filter((t) => t && t.function && typeof t.function.name === 'string' && t.function.name)
+          .map((t) => ({
+            name: t.function.name,
+            description: t.function.description,
+            parameters: cleanSchema(t.function.parameters),
+          })),
       },
     ];
   }

@@ -159,9 +159,10 @@ async function run({ agent, task, emit, signal, attachments }) {
     mode,
   );
 
-  const allTools = nativeSchemas.concat(svcSchemas, mcpSchemas);
+  const allTools = nativeSchemas.concat(svcSchemas, mcpSchemas)
+    .filter((s) => s && s.function && typeof s.function.name === 'string' && s.function.name);
 
-  const inputCount = nativeSchemas.filter((s) => s.function && (s.function.name.startsWith('input_') || s.function.name.startsWith('browser_'))).length;
+  const inputCount = nativeSchemas.filter((s) => s && s.function && typeof s.function.name === 'string' && (s.function.name.startsWith('input_') || s.function.name.startsWith('browser_'))).length;
   emit({
     type: 'line',
     level: 'ok',
