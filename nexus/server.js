@@ -2571,6 +2571,16 @@ const server = http.createServer((req, res) => {
 });
 
 ensureData();
+/* Понятная ошибка вместо стены стека, если порт уже занят (например, сервер уже запущен). */
+server.on('error', (e) => {
+  if (e && e.code === 'EADDRINUSE') {
+    console.error(`[nexus] порт ${PORT} уже занят — похоже, сервер уже запущен.`);
+    console.error('[nexus] найдите лишний процесс: Get-NetTCPConnection -LocalPort 3100 | Select-Object OwningProcess');
+    console.error('[nexus] или запустите на другом порту: $env:PORT=3200; node server.js');
+    process.exit(1);
+  }
+  throw e;
+});
 /* PIN по умолчанию (1111), если владелец не задавал свой. Только после этого слушаем порт. */
 auth.ensureDefaultPin()
   .then((applied) => {
