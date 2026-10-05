@@ -1,5 +1,7 @@
 /* NEXUS — общие утилиты: иконки, форматирование, анимации, модалки, тосты */
 
+import { t, getLang, localeTag } from './i18n.js';
+
 export const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /* ------------------------------------------------------- тема оформления */
@@ -121,19 +123,19 @@ export function icon(name, cls = '') {
 /* --------------------------------------------------- доменные токены */
 
 export const ROLES = [
-  { key: 'dev', name: 'Разработчик', accent: '#38E8FF', accent2: '#8B5CF6', icon: 'code', avatar: '🧑‍💻', desc: 'код, рефакторинг, тесты' },
-  { key: 'research', name: 'Исследователь', accent: '#8B5CF6', accent2: '#38E8FF', icon: 'search', avatar: '🔎', desc: 'источники, сводки, факты' },
-  { key: 'editor', name: 'Редактор', accent: '#A3E635', accent2: '#2DD4BF', icon: 'pen', avatar: '✍️', desc: 'стиль, тон, вычитка' },
-  { key: 'analyst', name: 'Аналитик', accent: '#60A5FA', accent2: '#38E8FF', icon: 'chart', avatar: '📊', desc: 'метрики, аномалии, выводы' },
-  { key: 'devops', name: 'DevOps', accent: '#FBBF24', accent2: '#FB923C', icon: 'server', avatar: '🛠️', desc: 'деплой, узлы, откаты' },
-  { key: 'assistant', name: 'Ассистент', accent: '#F472B6', accent2: '#8B5CF6', icon: 'message', avatar: '🤖', desc: 'почта, ответы, эскалация' },
-  { key: 'tester', name: 'Тестировщик', accent: '#2DD4BF', accent2: '#A3E635', icon: 'checkSquare', avatar: '🧪', desc: 'регресс, баги, чек-листы' },
-  { key: 'designer', name: 'Дизайнер', accent: '#E879F9', accent2: '#F472B6', icon: 'palette', avatar: '🎨', desc: 'макеты, интерфейсы, система' },
-  { key: 'pm', name: 'Менеджер', accent: '#34D399', accent2: '#2DD4BF', icon: 'clipboard', avatar: '📋', desc: 'планы, сроки, приоритеты' },
-  { key: 'marketer', name: 'Маркетолог', accent: '#FB923C', accent2: '#FBBF24', icon: 'megaphone', avatar: '📣', desc: 'тексты, кампании, охваты' },
-  { key: 'translator', name: 'Переводчик', accent: '#67E8F9', accent2: '#38E8FF', icon: 'translate', avatar: '🌐', desc: 'переводы, локализация' },
-  { key: 'mentor', name: 'Наставник', accent: '#C084FC', accent2: '#8B5CF6', icon: 'academic', avatar: '🎓', desc: 'объяснения, разборы, обучение' },
-  { key: 'custom', name: 'Своя роль', accent: '#94A3B8', accent2: '#64748B', icon: 'plus', avatar: '⭐', desc: 'своя профессия и правила' },
+  { key: 'dev', name: t('ui.role_dev_name'), accent: '#38E8FF', accent2: '#8B5CF6', icon: 'code', avatar: '🧑‍💻', desc: t('ui.role_dev_desc') },
+  { key: 'research', name: t('ui.role_research_name'), accent: '#8B5CF6', accent2: '#38E8FF', icon: 'search', avatar: '🔎', desc: t('ui.role_research_desc') },
+  { key: 'editor', name: t('ui.role_editor_name'), accent: '#A3E635', accent2: '#2DD4BF', icon: 'pen', avatar: '✍️', desc: t('ui.role_editor_desc') },
+  { key: 'analyst', name: t('ui.role_analyst_name'), accent: '#60A5FA', accent2: '#38E8FF', icon: 'chart', avatar: '📊', desc: t('ui.role_analyst_desc') },
+  { key: 'devops', name: t('ui.role_devops_name'), accent: '#FBBF24', accent2: '#FB923C', icon: 'server', avatar: '🛠️', desc: t('ui.role_devops_desc') },
+  { key: 'assistant', name: t('ui.role_assistant_name'), accent: '#F472B6', accent2: '#8B5CF6', icon: 'message', avatar: '🤖', desc: t('ui.role_assistant_desc') },
+  { key: 'tester', name: t('ui.role_tester_name'), accent: '#2DD4BF', accent2: '#A3E635', icon: 'checkSquare', avatar: '🧪', desc: t('ui.role_tester_desc') },
+  { key: 'designer', name: t('ui.role_designer_name'), accent: '#E879F9', accent2: '#F472B6', icon: 'palette', avatar: '🎨', desc: t('ui.role_designer_desc') },
+  { key: 'pm', name: t('ui.role_pm_name'), accent: '#34D399', accent2: '#2DD4BF', icon: 'clipboard', avatar: '📋', desc: t('ui.role_pm_desc') },
+  { key: 'marketer', name: t('ui.role_marketer_name'), accent: '#FB923C', accent2: '#FBBF24', icon: 'megaphone', avatar: '📣', desc: t('ui.role_marketer_desc') },
+  { key: 'translator', name: t('ui.role_translator_name'), accent: '#67E8F9', accent2: '#38E8FF', icon: 'translate', avatar: '🌐', desc: t('ui.role_translator_desc') },
+  { key: 'mentor', name: t('ui.role_mentor_name'), accent: '#C084FC', accent2: '#8B5CF6', icon: 'academic', avatar: '🎓', desc: t('ui.role_mentor_desc') },
+  { key: 'custom', name: t('ui.role_custom_name'), accent: '#94A3B8', accent2: '#64748B', icon: 'plus', avatar: '⭐', desc: t('ui.role_custom_desc') },
 ];
 
 /** Весёлые эмодзи для выбора аватара агента. */
@@ -150,27 +152,27 @@ export function roleMeta(key) {
 }
 
 export const MISSIONS = [
-  { key: 'Разработка', icon: 'code', color: '#38E8FF', desc: 'Фичи, баги, ревью и релизы продукта.' },
-  { key: 'Маркетинг', icon: 'megaphone', color: '#F472B6', desc: 'Контент, кампании и рост каналов.' },
-  { key: 'Аналитика', icon: 'chart', color: '#60A5FA', desc: 'Дашборды, метрики и проверка гипотез.' },
-  { key: 'Поддержка', icon: 'headset', color: '#A3E635', desc: 'Инбокс, ответы и контроль SLA.' },
-  { key: 'Автоматизация ПК', icon: 'bot', color: '#FBBF24', desc: 'Скрипты, файлы и рутина на вашем ПК.' },
+  { key: t('ui.mission_development'), icon: 'code', color: '#38E8FF', desc: t('ui.mission_development_desc') },
+  { key: t('ui.mission_marketing'), icon: 'megaphone', color: '#F472B6', desc: t('ui.mission_marketing_desc') },
+  { key: t('ui.mission_analytics'), icon: 'chart', color: '#60A5FA', desc: t('ui.mission_analytics_desc') },
+  { key: t('ui.mission_support'), icon: 'headset', color: '#A3E635', desc: t('ui.mission_support_desc') },
+  { key: t('ui.mission_automation'), icon: 'bot', color: '#FBBF24', desc: t('ui.mission_automation_desc') },
 ];
 
 export const DEFAULT_TASKS = {
-  dev: 'обновить зависимости и прогнать тесты',
-  research: 'свести отчёт по конкурентам',
-  editor: 'вычитать свежий раздел документации',
-  analyst: 'проверить аномалии в метриках за неделю',
-  devops: 'проверить состояние узлов и план деплоя',
-  assistant: 'обработать входящие обращения',
-  tester: 'прогнать регрессионный набор',
-  designer: 'обновить макеты экранов онбординга',
-  pm: 'разбить цель на задачи и расставить приоритеты',
-  marketer: 'придумать 5 заголовков и план продвижения',
-  translator: 'перевести текст, сохранив стиль',
-  mentor: 'объяснить тему простыми словами с примерами',
-  custom: 'выполнить задачу команды и отчитаться',
+  dev: t('ui.task_dev'),
+  research: t('ui.task_research'),
+  editor: t('ui.task_editor'),
+  analyst: t('ui.task_analyst'),
+  devops: t('ui.task_devops'),
+  assistant: t('ui.task_assistant'),
+  tester: t('ui.task_tester'),
+  designer: t('ui.task_designer'),
+  pm: t('ui.task_pm'),
+  marketer: t('ui.task_marketer'),
+  translator: t('ui.task_translator'),
+  mentor: t('ui.task_mentor'),
+  custom: t('ui.task_custom'),
 };
 
 export const SVC_COLORS = {
@@ -180,43 +182,45 @@ export const SVC_COLORS = {
 };
 
 export const ORCH_MODES = {
-  parallel: { name: 'Параллельно', desc: 'Агенты работают одновременно, каждый со своей задачей. Максимальная скорость на независимых задачах.' },
-  sequential: { name: 'Последовательно', desc: 'Результат одного агента уходит следующему. Точная передача контекста, предсказуемый поток.' },
-  hierarchy: { name: 'Иерархия', desc: 'Оркестратор раздаёт задачи вниз по цепочке и сводит ответы. Лучший баланс для сложных целей.' },
+  parallel: { name: t('ui.orch_parallel_name'), desc: t('ui.orch_parallel_desc') },
+  sequential: { name: t('ui.orch_sequential_name'), desc: t('ui.orch_sequential_desc') },
+  hierarchy: { name: t('ui.orch_hierarchy_name'), desc: t('ui.orch_hierarchy_desc') },
 };
 
 /* ------------------------------------------------------------ формат */
 
 export function fmtInt(n) {
-  return Math.round(Number(n) || 0).toLocaleString('ru-RU');
+  return Math.round(Number(n) || 0).toLocaleString(localeTag());
 }
 
 export function fmtCompact(n) {
   n = Math.round(Number(n) || 0);
-  if (n >= 1e6) return (n / 1e6).toFixed(1).replace('.', ',').replace(/,0$/, '') + ' млн';
-  if (n >= 1e3) return (n / 1e3).toFixed(1).replace('.', ',').replace(/,0$/, '') + ' тыс.';
+  const comma = getLang() === 'ru';
+  const fix = (v) => (comma ? v.toFixed(1).replace('.', ',').replace(/,0$/, '') : v >= 100 ? String(Math.round(v)) : String(Math.round(v * 10) / 10).replace(/\.0$/, ''));
+  if (n >= 1e6) return fix(n / 1e6) + ' ' + t('ui.num_million');
+  if (n >= 1e3) return fix(n / 1e3) + ' ' + t('ui.num_thousand');
   return String(n);
 }
 
 export function fmtTime(iso) {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '--:--';
-  return d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleTimeString(localeTag(), { hour: '2-digit', minute: '2-digit' });
 }
 
 export function fmtDateTime(iso) {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '—';
-  return d.toLocaleString('ru-RU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleString(localeTag(), { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
 }
 
 export function relTime(iso) {
   const diff = (Date.now() - new Date(iso).getTime()) / 1000;
   if (!Number.isFinite(diff)) return '—';
-  if (diff < 60) return 'только что';
-  if (diff < 3600) return `${Math.floor(diff / 60)} мин назад`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)} ч назад`;
-  return `${Math.floor(diff / 86400)} дн назад`;
+  if (diff < 60) return t('ui.time_now');
+  if (diff < 3600) return t('ui.time_min', { n: Math.floor(diff / 60) });
+  if (diff < 86400) return t('ui.time_hour', { n: Math.floor(diff / 3600) });
+  return t('ui.time_day', { n: Math.floor(diff / 86400) });
 }
 
 export function maskKey(key) {
@@ -280,7 +284,7 @@ export function avatarOrb(agent, cls = '') {
 }
 
 export function statusPill(status) {
-  const label = { online: 'онлайн', busy: 'занят', offline: 'офлайн' }[status] || status;
+  const label = { online: t('ui.status_online'), busy: t('ui.status_busy'), offline: t('ui.status_offline') }[status] || status;
   return `<span class="status-pill" data-status="${esc(status)}"><i></i>${label}</span>`;
 }
 
@@ -318,7 +322,7 @@ export function toast(title, text = '', kind = 'ok') {
   const ic = kind === 'ok' ? 'check' : 'alert';
   el.innerHTML = `${icon(ic)}
     <div><b>${esc(title)}</b>${text ? `<span>${esc(text)}</span>` : ''}</div>
-    <button class="icon-btn" aria-label="Закрыть уведомление">${icon('x')}</button>`;
+    <button class="icon-btn" aria-label="${esc(t('ui.toast_close'))}">${icon('x')}</button>`;
   root.appendChild(el);
   const kill = () => {
     if (!el.isConnected) return;
@@ -340,7 +344,7 @@ export function openModal({ kicker = '', title, body = '', footer = '' }) {
   layer.innerHTML = `<div class="modal" role="dialog" aria-modal="true" aria-label="${esc(title)}">
       <div class="modal-head">
         <div>${kicker ? `<div class="kicker">${esc(kicker)}</div>` : ''}<h3>${esc(title)}</h3></div>
-        <button class="icon-btn" data-close aria-label="Закрыть окно">${icon('x')}</button>
+        <button class="icon-btn" data-close aria-label="${esc(t('ui.modal_close'))}">${icon('x')}</button>
       </div>
       <div class="modal-body">${body}</div>
       <div class="modal-foot">${footer}</div>
@@ -365,7 +369,7 @@ export function openModal({ kicker = '', title, body = '', footer = '' }) {
   return api;
 }
 
-export function confirmDialog({ kicker = 'подтвердите', title, text, okText = 'Удалить', danger = true }) {
+export function confirmDialog({ kicker = t('ui.confirm_kicker'), title, text, okText = t('ui.confirm_ok'), danger = true }) {
   return new Promise((resolve) => {
     let settled = false;
     const finish = (v) => {
@@ -380,7 +384,7 @@ export function confirmDialog({ kicker = 'подтвердите', title, text, 
       kicker,
       title,
       body: `<p class="muted" style="font-size:13.5px;line-height:1.6">${esc(text)}</p>`,
-      footer: `<button class="btn btn-ghost" data-cancel>Отмена</button>
+      footer: `<button class="btn btn-ghost" data-cancel>${esc(t('ui.cancel'))}</button>
                <button class="btn ${danger ? 'btn-danger' : 'btn-primary'}" data-ok>${esc(okText)}</button>`,
     });
     m.modal.querySelector('[data-cancel]').addEventListener('click', () => { m.close(); finish(false); });
@@ -471,10 +475,10 @@ export function sparkline(values, { w = 120, h = 28, color = 'currentColor' } = 
 export async function copyText(text) {
   try {
     await navigator.clipboard.writeText(text);
-    toast('Скопировано', String(text).slice(0, 60), 'ok');
+    toast(t('ui.copied'), String(text).slice(0, 60), 'ok');
     return true;
   } catch {
-    toast('Не удалось скопировать', 'Выделите текст вручную', 'err');
+    toast(t('ui.copy_fail'), t('ui.copy_fail_hint'), 'err');
     return false;
   }
 }
@@ -731,7 +735,7 @@ export function qrSvg(text, opts = {}) {
       if (grid[r][c]) path += `M${c + margin},${r + margin}h1v1h-1z`;
     }
   }
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${dim} ${dim}" width="${size}" height="${size}" role="img" aria-label="QR-код для подключения" shape-rendering="crispEdges">`
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${dim} ${dim}" width="${size}" height="${size}" role="img" aria-label="${esc(t('ui.qr_label'))}" shape-rendering="crispEdges">`
     + `<rect width="${dim}" height="${dim}" fill="${light}"></rect>`
     + `<path d="${path}" fill="${dark}"></path></svg>`;
 }

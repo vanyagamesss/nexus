@@ -4,17 +4,18 @@ import {
   esc, icon, ROLES, roleMeta, MISSIONS, ORCH_MODES, DEFAULT_TASKS, AVATARS, avatarOrb,
   updateRangeFill, toast, confirmDialog, openModal, uid, reducedMotion, stagger, countUp, fmtInt,
 } from './ui.js';
+import { t } from './i18n.js';
 import { store, createTeam, getKb } from './store.js';
 
 const NAMES = ['Атлас', 'Вектор', 'Дельта', 'Орбита', 'Пульс', 'Кристалл', 'Нейрон', 'Фаза', 'Сигма', 'Комета'];
-const STEPS = ['Миссия', 'Агенты', 'Оркестрация', 'Обзор'];
+const STEPS = [t('ctor.step_mission'), t('ctor.step_agents'), t('ctor.step_orch'), t('ctor.step_review')];
 
 /* Готовые слаженные составы: один клик — и команда собрана */
 const TEAM_TEMPLATES = [
-  { id: 'company', name: 'ИИ-компания', icon: 'bot', accent: '#FBBF24', roles: [{ role: 'assistant', name: 'Директор' }, 'dev', 'research', 'editor', 'analyst', 'devops', 'tester', 'designer', 'assistant'], mission: 'Разработка', desc: 'целая компания' },
-  { id: 'research', name: 'Исследователи', icon: 'search', accent: '#8B5CF6', roles: ['research', 'research', 'analyst'], mission: 'Исследования', desc: 'глубокий ресерч' },
-  { id: 'devs', name: 'Разработчики', icon: 'code', accent: '#38E8FF', roles: ['dev', 'dev', 'tester', 'devops'], mission: 'Разработка', desc: 'код и деплой' },
-  { id: 'auto', name: 'Автопилот', icon: 'zap', accent: '#A3E635', roles: ['assistant', 'research', 'editor'], mission: 'Автоматизация', desc: 'универсалы' },
+  { id: 'company', name: t('ctor.tpl_company_name'), icon: 'bot', accent: '#FBBF24', roles: [{ role: 'assistant', name: 'Директор' }, 'dev', 'research', 'editor', 'analyst', 'devops', 'tester', 'designer', 'assistant'], mission: t('ui.mission_development'), desc: t('ctor.tpl_company_desc') },
+  { id: 'research', name: t('ctor.tpl_research_name'), icon: 'search', accent: '#8B5CF6', roles: ['research', 'research', 'analyst'], mission: t('ui.mission_analytics'), desc: t('ctor.tpl_research_desc') },
+  { id: 'devs', name: t('ctor.tpl_devs_name'), icon: 'code', accent: '#38E8FF', roles: ['dev', 'dev', 'tester', 'devops'], mission: t('ui.mission_development'), desc: t('ctor.tpl_devs_desc') },
+  { id: 'auto', name: t('ctor.tpl_auto_name'), icon: 'zap', accent: '#A3E635', roles: ['assistant', 'research', 'editor'], mission: t('ui.mission_automation'), desc: t('ctor.tpl_auto_desc') },
 ];
 
 /* ------------------------------------------------- провайдеры и модели */
@@ -43,7 +44,7 @@ function freshDraft() {
     step: 1,
     name: '',
     description: '',
-    mission: 'Разработка',
+    mission: t('ui.mission_development'),
     workspace: '',
     agents: [],
     orchestration: 'parallel',
@@ -104,10 +105,10 @@ export function mount(container) {
   page.innerHTML = `
     <div class="sec-head" style="margin-top:0">
       <div>
-        <div class="kicker">конструктор <span class="k-dim">/ сборка с нуля</span></div>
-        <h2>Новая команда</h2>
+        <div class="kicker">${esc(t('ctor.wizard_kicker'))} <span class="k-dim">${esc(t('ctor.wizard_kicker_dim'))}</span></div>
+        <h2>${esc(t('ctor.wizard_title'))}</h2>
       </div>
-      <span class="sec-note">прогресс сохраняется между шагами</span>
+      <span class="sec-note">${esc(t('ctor.wizard_note'))}</span>
     </div>
 
     <div class="panel wizard-head">
@@ -124,8 +125,8 @@ export function mount(container) {
 
     <div class="wizard-foot">
       <span class="step-note mono" id="stepNote"></span>
-      <button class="btn btn-ghost" id="prevBtn">${icon('chevronLeft')}Назад</button>
-      <button class="btn btn-primary" id="nextBtn">Далее${icon('arrowRight')}</button>
+      <button class="btn btn-ghost" id="prevBtn">${icon('chevronLeft')}${esc(t('ctor.prev'))}</button>
+      <button class="btn btn-primary" id="nextBtn">${esc(t('ctor.next'))}${icon('arrowRight')}</button>
     </div>`;
 
   const body = page.querySelector('#wizardBody');
@@ -148,28 +149,28 @@ export function mount(container) {
   function step1() {
     body.innerHTML = `
       <div class="step-panel form-card panel">
-        <div class="kicker">шаг 01 <span class="k-dim">/ идентичность</span></div>
-        <h2>Имя, описание и миссия</h2>
-        <p class="sub">Задайте, зачем команда существует. Миссия подставит рекомендованные роли на следующем шаге — изменить можно в любой момент.</p>
+        <div class="kicker">${esc(t('ctor.s1_kicker'))} <span class="k-dim">${esc(t('ctor.s1_kicker_dim'))}</span></div>
+        <h2>${esc(t('ctor.s1_title'))}</h2>
+        <p class="sub">${esc(t('ctor.s1_sub'))}</p>
         <div class="field-row">
           <div class="field" style="flex:1 1 260px">
-            <label for="cwName">название команды</label>
-            <input class="input" id="cwName" maxlength="60" placeholder="например: Протокол Нексус" value="${esc(draft.name)}">
-            <span class="field-hint">1–60 символов · отображается на главной</span>
+            <label for="cwName">${esc(t('ctor.s1_name_label'))}</label>
+            <input class="input" id="cwName" maxlength="60" placeholder="${esc(t('ctor.s1_name_ph'))}" value="${esc(draft.name)}">
+            <span class="field-hint">${esc(t('ctor.s1_name_hint'))}</span>
           </div>
         </div>
         <div class="field" style="margin-top:16px">
-          <label for="cwDesc">описание</label>
-          <textarea class="textarea" id="cwDesc" rows="3" maxlength="280" placeholder="Что команда делает и для кого">${esc(draft.description)}</textarea>
+          <label for="cwDesc">${esc(t('ctor.s1_desc_label'))}</label>
+          <textarea class="textarea" id="cwDesc" rows="3" maxlength="280" placeholder="${esc(t('ctor.s1_desc_ph'))}">${esc(draft.description)}</textarea>
         </div>
         <div class="field" style="margin-top:16px">
-          <label for="cwRoot">рабочая папка команды</label>
-          <input class="input mono" id="cwRoot" maxlength="300" placeholder="например: D:\проекты\бот (пусто — общая папка узла)" value="${esc(draft.workspace)}">
-          <span class="field-hint">Все файлы агентов будут создаваться здесь. Папка должна существовать.</span>
+          <label for="cwRoot">${esc(t('ctor.s1_ws_label'))}</label>
+          <input class="input mono" id="cwRoot" maxlength="300" placeholder="${esc(t('ctor.s1_ws_ph'))}" value="${esc(draft.workspace)}">
+          <span class="field-hint">${esc(t('ctor.s1_ws_hint'))}</span>
         </div>
         <div class="field" style="margin-top:20px">
-          <span class="field-label">миссия</span>
-          <div class="mission-grid" role="group" aria-label="Выбор миссии">
+          <span class="field-label">${esc(t('ctor.s1_mission_label'))}</span>
+          <div class="mission-grid" role="group" aria-label="${esc(t('ctor.s1_mission_aria'))}">
             ${MISSIONS.map((m) => `
               <button class="mission-card" data-mission="${esc(m.key)}" style="--mc:${m.color}" aria-pressed="${draft.mission === m.key}">
                 ${icon(m.icon)}
@@ -195,23 +196,23 @@ export function mount(container) {
 
   function step2() {
     const hint = draft.agents.length === 0 && draft.mission
-      ? `<div class="banner banner-warn" style="margin-top:0;margin-bottom:14px">${icon('zap')}Миссия «${esc(draft.mission)}» — быстрый старт: начните с рекомендованных ролей.</div>`
+      ? `<div class="banner banner-warn" style="margin-top:0;margin-bottom:14px">${icon('zap')}${esc(t('ctor.s2_mission_hint', { mission: draft.mission }))}</div>`
       : '';
     body.innerHTML = `
       <div class="step-panel">
         ${hint}
         <div class="constructor-grid">
           <aside class="panel roles-col">
-            <h3>Доступные роли</h3>
-            <div class="sub">клик — добавить в команду</div>
+            <h3>${esc(t('ctor.s2_roles_title'))}</h3>
+            <div class="sub">${esc(t('ctor.s2_roles_sub'))}</div>
             ${ROLES.map((r) => `
               <button class="role-btn" data-add-role="${r.key}" style="--rc:${r.accent}">
                 <span class="role-ico">${icon(r.icon)}</span>
                 <b>${esc(r.name)}</b>
                 <span class="role-add">+</span>
               </button>`).join('')}
-            <h3 style="margin-top:18px">Готовые команды</h3>
-            <div class="sub">один клик — собрать слаженный состав</div>
+            <h3 style="margin-top:18px">${esc(t('ctor.s2_tpl_title'))}</h3>
+            <div class="sub">${esc(t('ctor.s2_tpl_sub'))}</div>
             ${TEAM_TEMPLATES.map((t) => `
               <button class="role-btn" data-add-template="${esc(t.id)}" style="--rc:${t.accent}">
                 <span class="role-ico">${icon(t.icon)}</span>
@@ -232,8 +233,8 @@ export function mount(container) {
       return `
         <div class="empty">
           <div class="empty-icon">${icon('users')}</div>
-          <h3>Состав пуст</h3>
-          <p>Добавьте агентов слева. Каждого можно настроить: имя, модель, креативность, промпт и разрешения.</p>
+          <h3>${esc(t('ctor.members_empty_title'))}</h3>
+          <p>${esc(t('ctor.members_empty_text'))}</p>
         </div>`;
     }
     return draft.agents.map((a, i) => memberHTML(a, i)).join('');
@@ -246,8 +247,8 @@ export function mount(container) {
       return `
         <div class="field" style="margin-top:14px">
           <div class="banner banner-warn" style="margin:0">
-            <b>Провайдер LLM не настроен</b>
-            <div>Добавьте ключ API или локальный Ollama в <a href="#/connect">Подключения → Модели</a>, затем выберите провайдера и модель для агента.</div>
+            <b>${esc(t('ctor.prov_none_title'))}</b>
+            <div>${esc(t('ctor.prov_none_a'))} <a href="#/connect">${esc(t('ctor.prov_none_link'))}</a>${esc(t('ctor.prov_none_b'))}</div>
           </div>
         </div>`;
     }
@@ -266,22 +267,22 @@ export function mount(container) {
     return `
       <div class="field-row" style="margin-top:14px">
         <div class="field" style="flex:1 1 220px">
-          <label>провайдер</label>
+          <label>${esc(t('ctor.f_provider'))}</label>
           <select class="select" data-f="providerConfigId">
             ${list.map((p) => `
               <option value="${esc(p.id)}" ${p.id === cur.id ? 'selected' : ''}>
-                ${esc(p.providerName || p.providerId)}${p.hasKey === false ? ' (без ключа)' : ''}${p.isDefault ? ' ★' : ''}
+                ${esc(p.providerName || p.providerId)}${p.hasKey === false ? esc(t('ctor.prov_nokey')) : ''}${p.isDefault ? ' ★' : ''}
               </option>`).join('')}
           </select>
         </div>
         <div class="field" style="flex:1 1 220px">
-          <label>модель</label>
+          <label>${esc(t('ctor.f_model'))}</label>
           ${models.length ? `
             <select class="select" data-f="model">
               ${models.map((m) => `<option value="${esc(m)}" ${m === model ? 'selected' : ''}>${esc(m)}</option>`).join('')}
             </select>` : `
-            <input class="input" data-f="model" maxlength="60" value="${esc(model)}" placeholder="введите id модели">`}
-          ${models.length ? `<span class="field-hint">${models.length} моделей у провайдера</span>` : '<span class="field-hint">проверьте провайдера, чтобы увидеть список моделей</span>'}
+            <input class="input" data-f="model" maxlength="60" value="${esc(model)}" placeholder="${esc(t('ctor.f_model_ph'))}">`}
+          ${models.length ? `<span class="field-hint">${esc(t('ctor.f_models_hint', { n: models.length }))}</span>` : `<span class="field-hint">${esc(t('ctor.f_models_empty'))}</span>`}
         </div>
       </div>`;
   }
@@ -291,8 +292,8 @@ export function mount(container) {
     const open = a._open ? ' open' : '';
     const chips = (items, kind, sel) => items.length
       ? items.map((it) => `
-          <button class="toggle-chip${it.dim ? ' dim' : ''}" role="switch" aria-checked="${sel.includes(it.id)}" data-perm="${kind}" data-pid="${esc(it.id)}" style="--t-c:${meta.accent}" ${it.disabled ? 'disabled' : ''}>${esc(it.name || it.id)}${it.dim ? ' · не подключён' : ''}</button>`).join('')
-      : '<span class="dim" style="font-size:12px">нет элементов — подключите их в настройках</span>';
+          <button class="toggle-chip${it.dim ? ' dim' : ''}" role="switch" aria-checked="${sel.includes(it.id)}" data-perm="${kind}" data-pid="${esc(it.id)}" style="--t-c:${meta.accent}" ${it.disabled ? 'disabled' : ''}>${esc(it.name || it.id)}${it.dim ? esc(t('ctor.chip_offline')) : ''}</button>`).join('')
+      : `<span class="dim" style="font-size:12px">${esc(t('ctor.chip_empty'))}</span>`;
     return `
       <div class="member${open}" data-aid="${esc(a.id)}" style="--accent:${a.accent}">
         <div class="member-head" draggable="true" data-toggle="${esc(a.id)}">
@@ -300,41 +301,41 @@ export function mount(container) {
           ${avatarOrb(a, 'member-orb')}
           <span class="member-title">
             <b>${esc(a.name)}</b>
-            <span>${esc(a.role)} · шаг ${i + 1}</span>
+            <span>${esc(a.role)} · ${esc(t('ctor.member_step', { n: i + 1 }))}</span>
           </span>
           <span class="model-badge" data-model-badge>${esc(a.model)}</span>
           <span class="member-tools">
-            <button class="icon-btn danger" data-del="${esc(a.id)}" aria-label="Удалить агента ${esc(a.name)}">${icon('trash')}</button>
-            <button class="icon-btn member-expand" data-toggle="${esc(a.id)}" aria-label="Настройки агента ${esc(a.name)}">${icon('chevronDown')}</button>
+            <button class="icon-btn danger" data-del="${esc(a.id)}" aria-label="${esc(t('ctor.member_del_aria', { name: a.name }))}">${icon('trash')}</button>
+            <button class="icon-btn member-expand" data-toggle="${esc(a.id)}" aria-label="${esc(t('ctor.member_settings_aria', { name: a.name }))}">${icon('chevronDown')}</button>
           </span>
         </div>
         <div class="member-body">
           <div class="field-row">
             <div class="field" style="flex:0 0 120px">
-              <label>аватар</label>
+              <label>${esc(t('ctor.f_avatar'))}</label>
               <select class="select" data-f="avatar">
                 ${AVATARS.map((e) => `<option value="${e}" ${e === a.avatar ? 'selected' : ''}>${e}</option>`).join('')}
               </select>
             </div>
             <div class="field" style="flex:1 1 180px">
-              <label>имя</label>
+              <label>${esc(t('ctor.f_name'))}</label>
               <input class="input" data-f="name" maxlength="40" value="${esc(a.name)}">
             </div>
           </div>
           ${providerPickerHTML(a)}
           <div class="field" style="margin-top:14px">
-            <label>креативность / температура</label>
+            <label>${esc(t('ctor.f_temp'))}</label>
             <div class="temp-row">
-              <input type="range" min="0" max="1" step="0.1" value="${a.temperature}" data-f="temperature" aria-label="Креативность агента ${esc(a.name)}">
+              <input type="range" min="0" max="1" step="0.1" value="${a.temperature}" data-f="temperature" aria-label="${esc(t('ctor.temp_aria', { name: a.name }))}">
               <span class="temp-val" data-temp>${Number(a.temperature).toFixed(1)}</span>
             </div>
           </div>
           <div class="field" style="margin-top:14px">
-            <label>системный промпт</label>
-            <textarea class="textarea" rows="3" data-f="systemPrompt" maxlength="2000" placeholder="Роль, правила и стиль ответов">${esc(a.systemPrompt)}</textarea>
+            <label>${esc(t('ctor.f_prompt'))}</label>
+            <textarea class="textarea" rows="3" data-f="systemPrompt" maxlength="2000" placeholder="${esc(t('ctor.f_prompt_ph'))}">${esc(a.systemPrompt)}</textarea>
           </div>
           <div class="perm-block">
-            <b>сервисы и соцсети</b>
+            <b>${esc(t('ctor.perm_services'))}</b>
             <div class="perm-list">${chips(
               store.services.map((s) => ({
                 id: s.id,
@@ -345,28 +346,28 @@ export function mount(container) {
               'services',
               a.permissions.services,
             )}</div>
-            <span class="field-hint">агенту доступны операции только у подключённых сервисов; запись — в режиме «полный доступ». <a href="#/connect">Подключить сервис</a></span>
+            <span class="field-hint">${esc(t('ctor.perm_services_hint_a'))} <a href="#/connect">${esc(t('ctor.perm_services_link'))}</a></span>
           </div>
           <div class="perm-block">
-            <b>программы пк</b>
+            <b>${esc(t('ctor.perm_programs'))}</b>
             <div class="perm-list">${chips(store.programs.map((p) => ({ id: p.id, name: p.name })), 'programs', a.permissions.programs)}</div>
-            ${store.programs.length ? '' : '<span class="field-hint">Пока пусто — <a href="#/connect">найдите программы в Подключениях</a>.</span>'}
+            ${store.programs.length ? '' : `<span class="field-hint">${esc(t('ctor.perm_programs_empty_a'))} <a href="#/connect">${esc(t('ctor.perm_programs_link'))}</a>.</span>`}
           </div>
           <div class="perm-block">
-            <b>mcp-серверы</b>
+            <b>${esc(t('ctor.perm_mcp'))}</b>
             <div class="perm-list">${chips(store.mcp.map((m) => ({ id: m.id, name: m.name })), 'mcp', a.permissions.mcp)}</div>
-            ${store.mcp.length ? '' : '<span class="field-hint">Свой сервер добавляется в <a href="#/connect">Подключения → MCP</a>.</span>'}
+            ${store.mcp.length ? '' : `<span class="field-hint">${esc(t('ctor.perm_mcp_empty_a'))} <a href="#/connect">${esc(t('ctor.perm_mcp_link'))}</a>.</span>`}
           </div>
           <div class="perm-block">
-            <b>базы знаний</b>
+            <b>${esc(t('ctor.perm_kb'))}</b>
             <div class="perm-list">${chips(store.kb.map((b) => ({ id: b.id, name: b.name })), 'kb', a.permissions.kb || [])}</div>
-            ${store.kb.length ? '<span class="field-hint">Привязанные базы ищутся вместо всей папки.</span>' : '<span class="field-hint">Пока нет баз — <a href="#/kb">создайте в Базах знаний</a>.</span>'}
+            ${store.kb.length ? `<span class="field-hint">${esc(t('ctor.perm_kb_hint'))}</span>` : `<span class="field-hint">${esc(t('ctor.perm_kb_empty_a'))} <a href="#/kb">${esc(t('ctor.perm_kb_link'))}</a>.</span>`}
           </div>
           <div class="perm-block">
-            <b>ввод и свой браузер</b>
+            <b>${esc(t('ctor.perm_input'))}</b>
             <label class="check-row"><input type="checkbox" data-f="inputPerm" ${a.permissions.input ? 'checked' : ''}>
-              <span>разрешить агенту печатать, нажимать клавиши и кликать мышью</span></label>
-            <span class="field-hint">Фактическое управление ПК: браузер, Photoshop, Blender и другие программы. Работает только в режиме «полный доступ». Включайте только доверенным агентам.</span>
+              <span>${esc(t('ctor.perm_input_label'))}</span></label>
+            <span class="field-hint">${esc(t('ctor.perm_input_hint'))}</span>
           </div>
         </div>
       </div>`;
@@ -389,27 +390,27 @@ export function mount(container) {
     /* Своя профессия: название + пара слов о том, что она делает */
     function customRoleModal() {
       const m = openModal({
-        kicker: 'своя роль',
-        title: 'Новая профессия',
+        kicker: t('ctor.cr_kicker'),
+        title: t('ctor.cr_title'),
         body: `
-          <div class="field"><label>название профессии</label>
-            <input class="input" id="crName" maxlength="40" placeholder="например: Юрист" autocomplete="off"></div>
-          <div class="field" style="margin-top:12px"><label>что она делает</label>
-            <textarea class="textarea" id="crDesc" rows="3" maxlength="500" placeholder="например: проверяет договоры и находит риски"></textarea></div>
+          <div class="field"><label>${esc(t('ctor.cr_name_label'))}</label>
+            <input class="input" id="crName" maxlength="40" placeholder="${esc(t('ctor.cr_name_ph'))}" autocomplete="off"></div>
+          <div class="field" style="margin-top:12px"><label>${esc(t('ctor.cr_desc_label'))}</label>
+            <textarea class="textarea" id="crDesc" rows="3" maxlength="500" placeholder="${esc(t('ctor.cr_desc_ph'))}"></textarea></div>
           <div class="field-row" style="margin-top:12px">
-            <div class="field" style="flex:0 0 120px"><label>аватар</label>
+            <div class="field" style="flex:0 0 120px"><label>${esc(t('ctor.f_avatar'))}</label>
               <select class="select" id="crAvatar">${AVATARS.map((e) => `<option value="${e}">${e}</option>`).join('')}</select></div>
           </div>
           <div id="crRes"></div>`,
-        footer: `<button class="btn btn-ghost" data-cancel>Отмена</button>
-                 <button class="btn btn-primary" id="crSave">${icon('plus')}Добавить</button>`,
+        footer: `<button class="btn btn-ghost" data-cancel>${esc(t('ctor.cancel'))}</button>
+                 <button class="btn btn-primary" id="crSave">${icon('plus')}${esc(t('ctor.cr_save'))}</button>`,
       });
       m.modal.querySelector('[data-cancel]').addEventListener('click', m.close);
       m.modal.querySelector('#crSave').addEventListener('click', () => {
         const name = (m.modal.querySelector('#crName').value || '').trim();
         const desc = (m.modal.querySelector('#crDesc').value || '').trim();
         if (name.length < 2) {
-          m.modal.querySelector('#crRes').innerHTML = '<div class="banner banner-err" style="margin:12px 0 0">Придумайте название профессии.</div>';
+          m.modal.querySelector('#crRes').innerHTML = `<div class="banner banner-err" style="margin:12px 0 0">${esc(t('ctor.cr_err'))}</div>`;
           return;
         }
         const fresh = newAgent('custom');
@@ -421,13 +422,13 @@ export function mount(container) {
         draft.agents.push(fresh);
         m.close();
         refreshMembers();
-        toast('Профессия добавлена', name, 'ok');
+        toast(t('ctor.cr_added'), name, 'ok');
       });
     }
 
     body.querySelectorAll('[data-add-role]').forEach((btn) => {
       btn.addEventListener('click', () => {
-        if (draft.agents.length >= 12) { toast('Больше нельзя', 'Максимум 12 агентов', 'warn'); return; }
+        if (draft.agents.length >= 12) { toast(t('ctor.max_title'), t('ctor.max_text'), 'warn'); return; }
         if (btn.dataset.addRole === 'custom') { customRoleModal(); return; }
         const fresh = newAgent(btn.dataset.addRole);
         fresh._open = true;
@@ -445,7 +446,7 @@ export function mount(container) {
         const t = TEAM_TEMPLATES.find((x) => x.id === btn.dataset.addTemplate);
         if (!t) return;
         const room = 12 - draft.agents.length;
-        if (room <= 0) { toast('Больше нельзя', 'Максимум 12 агентов', 'warn'); return; }
+        if (room <= 0) { toast(t('ctor.max_title'), t('ctor.max_text'), 'warn'); return; }
         const roles = t.roles.slice(0, room);
         draft.mission = t.mission;
         for (const key of roles) {
@@ -459,7 +460,7 @@ export function mount(container) {
           draft.agents.push(fresh);
         }
         refreshMembers();
-        toast(`Команда «${t.name}»`, `${roles.length} агентов · миссия «${t.mission}»`, 'ok');
+        toast(t('ctor.tpl_added', { name: t.name }), t('ctor.tpl_added_text', { n: roles.length, mission: t.mission }), 'ok');
         col.querySelector('.member')?.scrollIntoView({ block: 'nearest', behavior: reducedMotion ? 'auto' : 'smooth' });
       });
     });
@@ -469,10 +470,10 @@ export function mount(container) {
       if (del) {
         const a = draft.agents.find((x) => x.id === del.dataset.del);
         confirmDialog({
-          kicker: 'конструктор',
-          title: `Убрать «${a ? a.name : ''}» из проекта?`,
-          text: 'Агент не сохранён — это только черновик состава.',
-          okText: 'Убрать',
+          kicker: t('ctor.del_kicker'),
+          title: t('ctor.del_title', { name: a ? a.name : '' }),
+          text: t('ctor.del_text'),
+          okText: t('ctor.del_ok'),
         }).then((ok) => {
           if (!ok) return;
           draft.agents = draft.agents.filter((x) => x.id !== del.dataset.del);
@@ -534,7 +535,7 @@ export function mount(container) {
         a[key] = f.value;
         if (key === 'name') {
           const title = card.querySelector('.member-title b');
-          if (title) title.textContent = f.value || 'Без имени';
+          if (title) title.textContent = f.value || t('ctor.noname');
         }
         if (key === 'model') {
           const badge = card.querySelector('[data-model-badge]');
@@ -590,27 +591,27 @@ export function mount(container) {
     body.innerHTML = `
       <div class="step-panel orch-grid">
         <section class="panel graph-panel">
-          <div class="kicker">схема связей <span class="k-dim">/ ${esc(ORCH_MODES[draft.orchestration].name.toLowerCase())}</span></div>
+          <div class="kicker">${esc(t('ctor.graph_kicker'))} <span class="k-dim">/ ${esc(ORCH_MODES[draft.orchestration].name.toLowerCase())}</span></div>
           <div id="graphHost">${graphHTML()}</div>
         </section>
         <aside class="orch-side">
           <div class="panel">
-            <h3>Режим работы</h3>
-            <div class="sub">как агенты передают друг другу контекст</div>
-            <div class="seg" role="group" aria-label="Режим оркестрации">
+            <h3>${esc(t('ctor.orch_title'))}</h3>
+            <div class="sub">${esc(t('ctor.orch_sub'))}</div>
+            <div class="seg" role="group" aria-label="${esc(t('ctor.orch_aria'))}">
               ${Object.entries(ORCH_MODES).map(([k, m]) => `
                 <button data-mode="${k}" aria-pressed="${draft.orchestration === k}">${m.name}</button>`).join('')}
             </div>
             <p class="mode-desc" id="modeDesc" style="margin-top:13px">${esc(ORCH_MODES[draft.orchestration].desc)}</p>
           </div>
           <div class="panel">
-            <h3>Бюджет шагов</h3>
-            <div class="sub">лимит на один пакет задач команды</div>
+            <h3>${esc(t('ctor.budget_title'))}</h3>
+            <div class="sub">${esc(t('ctor.budget_sub'))}</div>
             <div class="budget-top">
               <b id="budgetVal" class="mono">${draft.budgetSteps}</b>
-              <span class="dim mono" style="font-size:11px">макс. 500</span>
+              <span class="dim mono" style="font-size:11px">${esc(t('ctor.budget_max'))}</span>
             </div>
-            <input type="range" min="10" max="500" step="10" value="${draft.budgetSteps}" id="budgetRange" aria-label="Бюджет шагов">
+            <input type="range" min="10" max="500" step="10" value="${draft.budgetSteps}" id="budgetRange" aria-label="${esc(t('ctor.budget_title'))}">
           </div>
         </aside>
       </div>`;
@@ -636,7 +637,7 @@ export function mount(container) {
   function graphHTML() {
     if (!draft.agents.length) {
       return `<div class="empty" style="padding:38px 20px"><div class="empty-icon">${icon('gitBranch')}</div>
-        <h3>Нечего связывать</h3><p>Вернитесь на шаг 2 и добавьте хотя бы одного агента.</p></div>`;
+        <h3>${esc(t('ctor.graph_empty_title'))}</h3><p>${esc(t('ctor.graph_empty_text'))}</p></div>`;
     }
     const W = 720, H = 340;
     const n = draft.agents.length;
@@ -693,8 +694,8 @@ export function mount(container) {
           <circle class="g-halo" r="30" fill="#38E8FF" opacity=".16"/>
           <circle class="g-node-core" r="21" fill="#0a0d16" stroke="#38E8FF" stroke-width="1.6" stroke-dasharray="4 4"/>
           <circle r="6" fill="#38E8FF"/>
-          <text class="g-label" y="42">ЯДРО</text>
-          <text class="g-sub" y="56">оркестратор</text>
+          <text class="g-label" y="42">${esc(t('ctor.graph_hub'))}</text>
+          <text class="g-sub" y="56">${esc(t('ctor.graph_hub_sub'))}</text>
         </g>`;
       }
       const meta = roleMeta(a_roleKey(nd));
@@ -713,7 +714,7 @@ export function mount(container) {
 
     return `
       <div class="graph-wrap">
-        <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Схема связей: ${esc(ORCH_MODES[draft.orchestration].name)}, агентов: ${n}">
+        <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(t('ctor.graph_aria', { mode: ORCH_MODES[draft.orchestration].name, n }))}">
           <defs>
             <linearGradient id="edge-grad" x1="0" y1="0" x2="1" y2="0">
               <stop offset="0" stop-color="#38E8FF"/>
@@ -736,20 +737,20 @@ export function mount(container) {
       <div class="step-panel">
         <div class="review-grid stagger">
           <div class="panel review-card">
-            <h4>миссия</h4>
-            <div class="big">${esc(draft.name || 'Без названия')}</div>
-            <p>${esc(draft.description || 'Описание не задано.')}</p>
+            <h4>${esc(t('ctor.rev_mission'))}</h4>
+            <div class="big">${esc(draft.name || t('ctor.rev_noname'))}</div>
+            <p>${esc(draft.description || t('ctor.rev_nodesc'))}</p>
             <span class="chip" style="--chip-c:var(--cyan);margin-top:10px"><i></i>${esc(draft.mission)}</span>
-            <p class="mono dim" style="margin-top:10px;font-size:11.5px">папка: ${esc(draft.workspace || 'общая папка узла')}</p>
+            <p class="mono dim" style="margin-top:10px;font-size:11.5px">${esc(t('ctor.rev_folder', { ws: draft.workspace || t('ctor.rev_folder_default') }))}</p>
           </div>
           <div class="panel review-card">
-            <h4>оркестрация</h4>
+            <h4>${esc(t('ctor.rev_orch'))}</h4>
             <div class="big">${esc(ORCH_MODES[draft.orchestration].name)}</div>
             <p>${esc(ORCH_MODES[draft.orchestration].desc)}</p>
-            <span class="chip" style="--chip-c:var(--amber);margin-top:10px"><i></i>бюджет: ${draft.budgetSteps} шагов</span>
+            <span class="chip" style="--chip-c:var(--amber);margin-top:10px"><i></i>${esc(t('ctor.rev_budget', { n: draft.budgetSteps }))}</span>
           </div>
           <div class="panel review-card">
-            <h4>состав · ${draft.agents.length}</h4>
+            <h4>${esc(t('ctor.rev_team', { n: draft.agents.length }))}</h4>
             <div class="review-agents">
               ${draft.agents.map((a) => `
                 <div class="review-agent" style="--accent:${a.accent}">
@@ -758,20 +759,20 @@ export function mount(container) {
             </div>
           </div>
           <div class="panel review-card">
-            <h4>разрешения</h4>
+            <h4>${esc(t('ctor.rev_perms'))}</h4>
             <div class="review-agents">
-              <div class="review-agent"><span class="dot" style="--accent:var(--cyan)"></span>сервисы <span>${svc}</span></div>
-              <div class="review-agent"><span class="dot" style="--accent:var(--blue)"></span>программы пк <span>${prg}</span></div>
-              <div class="review-agent"><span class="dot" style="--accent:var(--violet)"></span>mcp-серверы <span>${mcp}</span></div>
+              <div class="review-agent"><span class="dot" style="--accent:var(--cyan)"></span>${esc(t('ctor.rev_perm_services'))} <span>${svc}</span></div>
+              <div class="review-agent"><span class="dot" style="--accent:var(--blue)"></span>${esc(t('ctor.rev_perm_programs'))} <span>${prg}</span></div>
+              <div class="review-agent"><span class="dot" style="--accent:var(--violet)"></span>${esc(t('ctor.perm_mcp'))} <span>${mcp}</span></div>
             </div>
           </div>
         </div>
 
         <div class="panel create-zone" id="createZone">
-          <div class="kicker" style="justify-content:center">финал <span class="k-dim">/ шаг 04</span></div>
-          <h3>Команда готова к развёртыванию</h3>
-          <p>Кнопка атомарно сохранит состав в <span class="mono">data/team.json</span> и вернёт вас на главную, где экипаж сразу можно запустить.</p>
-          <button class="btn btn-primary" id="createBtn">${icon('zap')}Создать команду</button>
+          <div class="kicker" style="justify-content:center">${esc(t('ctor.fin_kicker'))} <span class="k-dim">${esc(t('ctor.fin_kicker_dim'))}</span></div>
+          <h3>${esc(t('ctor.fin_title'))}</h3>
+          <p>${t('ctor.fin_text', { file: '<span class="mono">data/team.json</span>' })}</p>
+          <button class="btn btn-primary" id="createBtn">${icon('zap')}${esc(t('ctor.create'))}</button>
         </div>
       </div>`;
 
@@ -789,11 +790,11 @@ export function mount(container) {
     const btn = body.querySelector('#createBtn');
     if (!btn || btn.classList.contains('btn-busy')) return;
     if (!validate(1) || !validate(2)) {
-      toast('Черновик неполон', 'Вернитесь на шаги 1–2 и заполните обязательные поля', 'warn');
+      toast(t('ctor.draft_short_title'), t('ctor.draft_short_text'), 'warn');
       return;
     }
     btn.classList.add('btn-busy');
-    btn.innerHTML = `<span class="spinner"></span>Сохраняем…`;
+    btn.innerHTML = `<span class="spinner"></span>${esc(t('ctor.saving'))}`;
     try {
       await createTeam({
         team: {
@@ -821,18 +822,18 @@ export function mount(container) {
           spark: a.spark,
         })),
         event: {
-          text: `Команда «${draft.name.trim()}» создана: ${draft.agents.length} агентов, режим ${ORCH_MODES[draft.orchestration].name.toLowerCase()}`,
+          text: t('ctor.event_created', { name: draft.name.trim(), n: draft.agents.length, mode: ORCH_MODES[draft.orchestration].name.toLowerCase() }),
           kind: 'ok',
         },
       });
       burst(btn);
-      toast('Команда создана', `${draft.agents.length} агентов готовы к запуску`, 'ok');
+      toast(t('ctor.created_title'), t('ctor.created_text', { n: draft.agents.length }), 'ok');
       draft = freshDraft();
       setTimeout(() => { window.location.hash = '#/'; }, reducedMotion ? 60 : 760);
     } catch (e) {
-      toast('Ошибка создания', e.message, 'err');
+      toast(t('ctor.create_err'), e.message, 'err');
       btn.classList.remove('btn-busy');
-      btn.innerHTML = `${icon('zap')}Создать команду`;
+      btn.innerHTML = `${icon('zap')}${esc(t('ctor.create'))}`;
     }
   }
 
@@ -879,10 +880,10 @@ export function mount(container) {
     prevBtn.style.visibility = draft.step === 1 ? 'hidden' : 'visible';
     nextBtn.hidden = draft.step >= 4;
     nextBtn.disabled = !ok;
-    if (draft.step === 1) note.textContent = ok ? 'готово к переходу' : 'укажите название (мин. 2 символа)';
-    else if (draft.step === 2) note.textContent = ok ? `агентов: ${draft.agents.length}` : 'добавьте хотя бы одного агента';
-    else if (draft.step === 3) note.textContent = `режим: ${ORCH_MODES[draft.orchestration].name.toLowerCase()} · бюджет ${draft.budgetSteps}`;
-    else note.textContent = `проверьте обзор и создавайте`;
+    if (draft.step === 1) note.textContent = ok ? t('ctor.note_ready') : t('ctor.note_need_name');
+    else if (draft.step === 2) note.textContent = ok ? t('ctor.note_agents', { n: draft.agents.length }) : t('ctor.note_need_agent');
+    else if (draft.step === 3) note.textContent = t('ctor.note_mode', { mode: ORCH_MODES[draft.orchestration].name.toLowerCase(), budget: draft.budgetSteps });
+    else note.textContent = t('ctor.note_review');
   }
 
   function renderStep() {
@@ -900,7 +901,7 @@ export function mount(container) {
   });
   nextBtn.addEventListener('click', () => {
     if (!validate(draft.step)) {
-      toast('Шаг неполон', note.textContent, 'warn');
+      toast(t('ctor.step_short'), note.textContent, 'warn');
       return;
     }
     if (draft.step < 4) { draft.step++; renderStep(); }

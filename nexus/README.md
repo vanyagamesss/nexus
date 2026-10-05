@@ -1,383 +1,373 @@
-# NEXUS — система команды ИИ-агентов
+# NEXUS — AI agent team system
 
-Тёмный «neo-cyber control room» для сборки и управления командой локальных ИИ-агентов:
-LLM-провайдеры, агенты, инструменты, MCP-серверы и метрики узла. Весь UI на русском языке.
+A dark "neo-cyber control room" for building and running a team of local AI agents:
+LLM providers, agents, tools, MCP servers and host metrics. Zero dependencies —
+plain Node.js built-ins only. UI in **English (default), Русский, 中文** —
+switch with the globe button (sidebar or Pult header).
 
-## Запуск
+## Quickstart
 
 ```bash
 node server.js
 ```
 
-Открыть **http://localhost:3100**
+Open **http://localhost:3100**
 
-| Переменная | По умолчанию | Назначение |
+| Variable | Default | Purpose |
 |---|---|---|
-| `PORT` | `3100` | Порт сервера (`$env:PORT=3200; node server.js`) |
-| `HOST` | `0.0.0.0` | Интерфейс: `0.0.0.0` открывает доступ телефону по сети |
-| `NEXUS_DATA` | `data/` | Другая папка с данными (для тестов и параллельных запусков) |
-| `NEXUS_TRUST_PROXY` | выкл. | Доверять `X-Forwarded-For` — включать **только** за обратным проккси |
+| `PORT` | `3100` | Server port (`$env:PORT=3200; node server.js`) |
+| `HOST` | `0.0.0.0` | Bind interface: `0.0.0.0` exposes it to your phone on LAN |
+| `NEXUS_DATA` | `data/` | Different data dir (tests, parallel runs) |
+| `NEXUS_TRUST_PROXY` | off | Trust `X-Forwarded-For` — enable **only** behind a reverse proxy |
 
-- Зависимости: **нет** (только встроенные модули Node.js, `npm install` не нужен)
-- Данные создаются автоматически в `data/*.json` при первом запуске
-- Пересоздать данные с нуля: `node server.js --reseed`
+- Dependencies: **none** (Node.js built-ins only, no `npm install`)
+- Data is created automatically in `data/*.json` on first start
+- Reset everything: `node server.js --reseed`
 
-## Без заглушек
+## Languages
 
-Интерфейс показывает только то, что действительно произошло. Это принцип проекта,
-а не режим отладки.
+- English is the default (`localStorage nexus_lang`, globe button cycles EN → RU → 中文).
+- Almost the whole UI is translated: nav, Pult, Team, Knowledge bases, Constructor,
+  Connections, palette, toasts, dialogs, dates/numbers/voice locales.
+- Slash commands accept English aliases too (`/status`, `/team`, `/company`,
+  `/chain`, `/history`, `/repeat`, `/export`, `/find`, `/agents`, `/clear`,
+  `/schedule`, `/cancel`, `/open`, `/pause`, `/resume`, `/models`, `/services`,
+  `/programs`, `/access`, `/screen`, `/statistics`).
+- Server-side texts (Telegram bridge replies, provider errors) stay in Russian.
 
-| Что | Как обеспечено |
+## No stubs
+
+The UI shows only what really happened — a project principle, not a debug mode.
+
+| What | How it's guaranteed |
 |---|---|
-| Токены и задачи | Производные от журнала `data/runs.json`, который пишется только при реальном ответе провайдера. Демо-значения (4.8 млн токенов) удалены |
-| Список моделей | Живой `/models` провайдера; при недоступной сети модели каталога помечены как «каталог», а не выдаются за подтверждённые |
-| MCP-серверы | Реальный `initialize` + `tools/list`; инструменты не вводятся руками |
-| Программы | Реальный поиск по `PATH` и списку известных мест; записи с несуществующими путями удаляются миграцией |
-| Сервисы | Стартуют неподключёнными, ключ вводит пользователь; проверка идёт настоящим запросом к API |
-| События команды | Только реальные прогоны; выдуманные seed-события удаляются миграцией |
+| Tokens & tasks | Derived from `data/runs.json`, written only on a real provider reply |
+| Model list | Live provider `/models`; offline catalog models are labeled as catalog |
+| MCP servers | Real `initialize` + `tools/list`; tools are never typed by hand |
+| Programs | Real `PATH` + known-locations scan merged with your list; missing files are flagged `missing`, never silently deleted |
+| Services | Start disconnected, you enter the key; checks are real API requests |
+| Team events | Only real runs; fictional seed events are removed by migration |
 
-Агенты появляются «чистыми»: без выдуманных разрешений, задач и статусов. Доступы
-появляются после подключения сервисов, программ и MCP-серверов.
+Agents start "clean": no invented permissions, tasks or statuses. Access appears
+after you connect services, programs and MCP servers.
 
-## Доступ с телефона
+## Phone access
 
-PIN по умолчанию — **1111**. Смените его сразу:
-**Подключения → Доступ → PIN-код → Сменить PIN**. Пока стоит код по умолчанию,
-в разделе «Доступ» висит предупреждение — его знает каждый, кто читает README.
+Default PIN is **1111**. Change it immediately:
+**Connections → Access → PIN → Change PIN**. While the default stands,
+the Access tab shows a warning — everyone reading this README knows it.
 
-1. Откройте **Подключения → Доступ** на компьютере и задайте свой PIN (4–12 цифр).
-2. Там же появится QR-код с адресом вида `http://192.168.0.112:3100`.
-3. Наведите камеру телефона, введите PIN — откроется экран входа.
+1. On your PC open **Connections → Access** and set your PIN (4–12 digits).
+2. A QR code appears with an address like `http://192.168.0.112:3100`.
+3. Point your phone camera, enter the PIN — the login screen opens.
 
-Пока PIN не задан, вход из сети заблокирован: произвольный код не подойдёт.
-Для гостей создаются **одноразовые** коды приглашений (30 минут по умолчанию).
-Коды приглашений видны только авторизованным клиентам — неавторизованные их не получат.
+Until a PIN is set, LAN login is blocked: random codes won't work.
+Guests get **one-time** invite codes (30 minutes by default).
+Invite codes are visible to authorized clients only.
 
-### Режимы работы
+### Work modes
 
-| Режим | Что могут агенты |
+| Mode | What agents can do |
 |---|---|
-| `readonly` | Только чтение. Запись файлов и запуск программ заблокированы |
-| `full` | Запись в рабочую папку и запуск разрешённых программ |
+| `readonly` | Read only. File writes and program runs are blocked |
+| `full` | Write into the work folder and run allowed programs |
 
-Переключение в `full` требует подтверждения; удалённым клиентам доступно только при
+Switching to `full` requires confirmation; remote clients get it only with
 `allowRemoteRun`.
 
-### Модель безопасности
+### Security model
 
-- Локальный запрос (`127.0.0.1` / `::1`) всегда доверенный — PIN не спрашивается.
-- `X-Forwarded-For` **игнорируется** по умолчанию, иначе любой клиент из сети выдал бы себя
-  за локальный. Включайте `NEXUS_TRUST_PROXY` только если сервер стоит за доверенным прокси.
-- Сессии живут в cookie `nexus_session`; есть ограничение попыток входа (5 за 15 минут).
-- API-ключи шифруются AES-256-GCM, ключ шифрования — `data/.secret`.
+- Local requests (`127.0.0.1` / `::1`) are always trusted — no PIN asked.
+- `X-Forwarded-For` is **ignored** by default, otherwise any LAN client could
+  pose as local. Enable `NEXUS_TRUST_PROXY` only behind a trusted proxy.
+- Sessions live in the `nexus_session` cookie; login attempts are rate-limited (5 per 15 min).
+- API keys are encrypted with AES-256-GCM, the key is `data/.secret`.
 
-### Telegram-пульт
+### Telegram remote
 
-Командой можно управлять из Telegram. Токен бота вводит пользователь:
-**Подключения → Сервисы → Telegram** (токен от @BotFather, хранится зашифрованным),
-затем **Подключения → Доступ → Telegram-пульт**: выбор сервиса, исполнителя
-(вся команда или один агент) и разрешённых chat ID.
-У бота есть меню-кнопки: Статус, Агенты, Расписание, Помощь — и команды
+Control the team from Telegram. The user enters the bot token:
+**Connections → Services → Telegram** (token from @BotFather, stored encrypted),
+then **Connections → Access → Telegram bridge**: service, performer
+(whole team or one agent) and allowed chat IDs.
+The bot has menu buttons: Status, Agents, Schedule, Help — and commands
 /start, /status, /agents, /schedule, /menu, /help.
 
-- Без allowlist мост не включается; сообщения из чужих чатов молча игнорируются.
-- `/start` — приветствие, `/status` — состояние команды, остальное — задачи.
-- Без исполнителя команда **совещается цепочкой**: каждый следующий видит ответы
-  предыдущих, переговоры пишутся в ленту событий и консоль, в чат падает только итог.
-- `@Имя <задача>` — поручить лично (например: `@Архимед проверь код`).
-- Ответы агентов возвращаются в тот же чат; прогоны пишутся в общий журнал.
-- Свой chat ID узнаётся кнопкой «Показать чаты»: напишите боту сообщение и нажмите её.
+- Without an allowlist the bridge won't turn on; foreign chats are silently ignored.
+- `/start` — greeting, `/status` — team state, everything else becomes tasks.
+- With no performer assigned the team **debates as a chain**: each agent sees
+  previous answers, chatter lands in the event feed and console, only the final
+  verdict goes to chat.
+- `@Name <task>` assigns one agent directly (e.g. `@Archimedes check the code`).
+- Agent replies return to the same chat; runs go to the shared journal.
+- Find your chat ID with "Show chats": message the bot, then press it.
 
-### База знаний (RAG)
+### Knowledge base (RAG)
 
-Агенты помнят содержимое рабочей папки: файлы режутся на куски, релевантность
-считается по словам — без внешних сервисов и эмбеддингов.
+Agents remember the work folder: files are chunked, relevance is scored by words —
+no external services or embeddings.
 
-- Инструмент `rag_search`: вопрос базе знаний, в ответ — похожие куски с путями.
-- Автоконтекст: топ-куски подкладываются в промпт сами перед каждой задачей.
-- Раздел **Базы знаний** (`#/kb`): наборы из папок/файлов + привязка к агентам
-  (одному или нескольким). Привязанные агенты ищут только в своих базах,
-  непривязанные видят всю папку. Проверка базы вопросом — на месте.
-- Панель «База знаний» в разделе Команда: сколько файлов и кусков видит агент.
+- `rag_search` tool: ask the knowledge base, get matching chunks with paths.
+- Auto-context: top chunks are injected into the prompt before every task.
+- **Knowledge bases** section (`#/kb`): sets of folders/files + assigned agents
+  (one or many). Assigned agents search only their bases, others see the whole folder.
+- Team view panel shows how many files/chunks the agent sees.
 - API: `GET /api/rag/status` → `{root, files, chunks, bytes, bases[]}`,
   `GET/POST /api/kb`, `POST /api/kb/search`.
 
-### Мост ввода: клавиатура, мышь и свой браузер
+### Input bridge: keyboard, mouse and your own browser
 
-Агент может управлять ПК по-настоящему: печатать, нажимать сочетания клавиш,
-двигать курсор, кликать — и водить собственный видимый браузер (Chrome + CDP
-без зависимостей, отдельный профиль, русский язык, без флага автоматизации):
-открывать сайты (`browser_open`), читать слепки страниц (`browser_snapshot`),
-кликать (`browser_click`) и заполнять формы (`browser_type`) — включая регистрации.
-Окно браузера видно оператору (при запуске — фирменный экран NEXUS),
-командой `/браузер` его можно поднять на экран, `/экран` — показать скриншот в чате.
-Инстаграм и тикток без входа читаются только своим браузером (публичные страницы);
-единого открытого API у них нет — честный путь один: открыть, снять слепок, кликать.
-Капчи, SMS и 2FA пройти нельзя — агент честно скажет об этом.
+An agent can really drive the PC: type, press hotkeys, move the cursor, click —
+and steer its own visible browser (Chrome + CDP, no dependencies, separate profile,
+no automation flag): open sites (`browser_open`), read page snapshots
+(`browser_snapshot`), click (`browser_click`), fill forms (`browser_type`).
+Screenshots for the model go through `screenshot` (vision) and `/screen` in chat.
+Captchas, SMS and 2FA can't be passed — the agent will honestly say so.
 
-- Включается **только явно**: тумблер «Ввод с клавиатуры и мыши» в карточке агента
-  (или чекбокс в конструкторе) **плюс** режим «Полный доступ».
-- Инструменты: `input_screen` (размер экрана), `input_key` («ENTER», «ctrl+s»),
-  `input_text` (до 300 символов), `input_mouse` (move/click/double/right/scroll).
-- Реализация — PowerShell + .NET без внешних зависимостей, только Windows
-  с активной сессией пользователя. Каждое действие буквально выполняется —
-  включайте только доверенным агентам.
+- Enabled **only explicitly**: the "Keyboard & mouse input" toggle on the agent card
+  (or constructor checkbox) **plus** "Full access" mode.
+- Tools: `input_screen`, `input_key` (`ENTER`, `ctrl+s`), `input_text` (300 chars),
+  `input_mouse` (move/click/double/right/scroll).
+- PowerShell + .NET implementation, no external dependencies, Windows only
+  with an active user session. Every action literally executes —
+  enable only for agents you trust.
 
-## Что внутри
+## What's inside
 
-| Файл / папка | Назначение |
+| File / folder | Purpose |
 |---|---|
-| `server.js` | HTTP-сервер: статика + REST API + NDJSON-прогон агентов |
-| `lib/store.js` | Персистентность, кэш в памяти, шифрование секретов |
-| `lib/providers.js` | Каталог провайдеров, LLM-адаптеры, живой список моделей |
-| `lib/agent.js` | Цикл агента: промпт → RAG-автоконтекст → инструменты → ответ |
-| `lib/rag.js` | База знаний: чанки файлов рабочей папки, поиск по словам, сводка для панели |
-| `lib/tools.js` | Инструменты ФС/системы, `rag_search`, `calc`, `download_file`, `screenshot` (vision), `zip_pack`/`zip_unpack`, path jail, защита от SSRF, мост ввода (клавиатура/мышь), поиск и чтение веба, команды PowerShell, буфер обмена |
-| `lib/browser.js` | Свой браузер команды: Chrome + CDP, свой профиль, скриншоты |
-| `lib/mcp.js` | MCP-клиент: stdio / SSE / HTTP, handshake и список tools |
-| `lib/tgbridge.js` | Мост Telegram → команда: опрос входящих, allowlist чатов, совещание цепочкой, @Имя, запуск задач |
+| `server.js` | HTTP server: static + REST API + NDJSON agent runs |
+| `lib/store.js` | Persistence, in-memory cache, secret encryption |
+| `lib/providers.js` | Provider catalog, LLM adapters, live model list |
+| `lib/agent.js` | Agent loop: prompt → RAG auto-context → tools → answer |
+| `lib/rag.js` | Knowledge base: workspace chunking, word search, panel summary |
+| `lib/tools.js` | FS/system tools, `rag_search`, `calc`, `download_file`, `screenshot` (vision), `zip_pack`/`zip_unpack`, path jail, SSRF guard, input bridge, web search & read, PowerShell commands, clipboard |
+| `lib/browser.js` | Team's own browser: Chrome + CDP, own profile, screenshots |
+| `lib/mcp.js` | MCP client: stdio / SSE / HTTP, handshake and tools list |
+| `lib/tgbridge.js` | Telegram → team bridge: incoming polling, chat allowlist, chain debates, @Name, task runs |
+| `lib/metrics.js` | Real CPU, memory, disk, uptime, LAN addresses |
+| `lib/auth.js` | PIN, sessions, invites |
+| `public/index.html` | SPA shell (sidebar, bottom tab-bar, console dock, drawer) |
+| `public/sw.js`, `manifest.webmanifest` | PWA: offline shell, install on phone |
+| `public/css/style.css` | Design system: tokens, components, responsive, a11y, polish layer |
+| `public/js/*.js` | Modules: router, state, console, views, utils |
+| `public/js/i18n*.js` | EN/RU/ZH dictionaries (`t('ns.key')`, default English) |
+| `data/*.json` | State (created by the server) |
 
-Внутренние сообщения агента хранятся в camelCase (`toolCalls`/`toolCallId`),
-а на провод уходят строго в формате провайдера (`toOpenAIMessages`/`toOllamaMessages`/
-готовые конвертеры Anthropic/Gemini). Вызовы без id от модели получают сгенерированный
-id — иначе провайдер отвечает 400 «tool messages must include a non-empty string tool_call_id».
-| `lib/metrics.js` | Реальные CPU, память, диск, аптайм, LAN-адреса |
-| `lib/auth.js` | PIN, сессии, приглашения |
-| `public/index.html` | Оболочка SPA (сайдбар, нижний таб-бар, док консоли, шторка) |
-| `public/sw.js`, `manifest.webmanifest` | PWA: офлайн-оболочка, установка на телефон |
-| `public/css/style.css` | Дизайн-система: токены, компоненты, адаптив, a11y |
-| `public/js/*.js` | Модули: роутер, состояние, консоль, три вида, утилиты |
-| `data/*.json` | Состояние (создаётся сервером) |
+Agent internals use camelCase (`toolCalls`/`toolCallId`), the wire strictly follows
+each provider's format (`toOpenAIMessages`/`toOllamaMessages`/Anthropic/Gemini
+converters, all vision-aware). Calls without ids get a generated id — otherwise
+providers answer 400.
+| `lib/metrics.js` | Real CPU, memory, disk, uptime, LAN addresses |
+| `lib/auth.js` | PIN, sessions, invites |
 
 ## REST API
 
-### Команда и ресурсы
+### Team and resources
 
-| Метод | Путь | Описание |
+| Method | Path | Description |
 |---|---|---|
-| GET/POST | `/api/team` | Команда + агенты. POST: `{team}`, `{agent}`, `{agents}`, `{removeAgentId}`, `{event}` |
-| GET/POST | `/api/services` | Сервисы. POST: `{item}` (upsert) / `{removeId}` |
-| GET/POST | `/api/programs` | Программы ПК. POST: `{item}` / `{removeId}` (недоступные помечаются `missing`, а не удаляются) |
-| POST | `/api/programs/scan` | Настоящее сканирование ПК + слияние со списком → `{added, total, programs}` |
-| GET/POST | `/api/kb` | Базы знаний RAG. POST: `{item}` / `{removeId}` |
-| POST | `/api/kb/search` | Проверка базы: `{id, query}` → похожие куски только внутри её путей |
-| GET | `/api/files?path=` | Превью картинок из рабочей папки (png/jpg/gif/webp/bmp, до 8 МБ) |
-| GET/POST | `/api/mcp` | MCP-серверы. POST: `{item}` / `{removeId}` |
-| POST | `/api/services/:id/check` | Проверка соединения сервиса (задержка + валидация ключа) |
-| POST | `/api/mcp/:id/reconnect` | Переподключение MCP-сервера с логом |
-| POST | `/api/mcp/:id/probe` | Реальный handshake MCP и список tools |
-| POST | `/api/mcp/probe-all` | Проверка всех MCP-серверов |
+| GET/POST | `/api/team` | Team + agents. POST: `{team}`, `{agent}`, `{agents}`, `{removeAgentId}`, `{event}` |
+| GET/POST | `/api/services` | Services. POST: `{item}` (upsert) / `{removeId}` |
+| GET/POST | `/api/programs` | PC programs. POST: `{item}` / `{removeId}` (missing files flagged, not deleted) |
+| POST | `/api/programs/scan` | Real PC scan + merge → `{added, total, programs}` |
+| GET/POST | `/api/kb` | RAG knowledge bases. POST: `{item}` / `{removeId}` |
+| POST | `/api/kb/search` | Test a base: `{id, query}` → matching chunks |
+| GET | `/api/files?path=` | Image previews from the work folder (png/jpg/gif/webp/bmp ≤ 8 MB) |
+| GET/POST | `/api/mcp` | MCP servers. POST: `{item}` / `{removeId}` |
+| POST | `/api/services/:id/check` | Live service check (latency + key validation) |
+| POST | `/api/mcp/:id/reconnect` | MCP reconnect with log |
+| POST | `/api/mcp/:id/probe` | Real MCP handshake and tools list |
+| POST | `/api/mcp/probe-all` | Probe all MCP servers |
 
-### LLM-провайдеры и метрики
+### LLM providers and metrics
 
-| Метод | Путь | Описание |
+| Method | Path | Description |
 |---|---|---|
-| GET | `/api/providers` | Настроенные провайдеры (без ключей, только маска) |
-| GET | `/api/providers/catalog` | Каталог из 23 провайдеров + настроенные |
+| GET | `/api/providers` | Configured providers (no keys, mask only) |
+| GET | `/api/providers/catalog` | Catalog of 27 providers + configured ones |
 | POST | `/api/providers` | `{providerId, apiKey, baseUrl, isDefault, test}` / `{removeId}` / `{id, models[]}` |
-| POST | `/api/providers/:id/probe` | Проверка ключа и обновление живого списка моделей |
+| POST | `/api/providers/:id/probe` | Key check + live model list refresh |
 | GET | `/api/metrics` | `{node: {cpu, memory, disk, process, host}, stats, lan}` |
-| GET | `/api/runs` | История прогонов и сводная статистика |
-| GET | `/api/rag/status` | База знаний: `{root, files, chunks, bytes}` |
+| GET | `/api/runs` | Run history and aggregate stats |
+| GET | `/api/rag/status` | Knowledge base: `{root, files, chunks, bytes, bases[]}` |
 
-#### Живой список моделей и ручной выбор
+#### Live model list and manual pick
 
-Провайдеры с `dynamicModels` (OpenAI, OpenRouter, Anthropic, Gemini, Groq, Together,
-DeepSeek, Mistral, xAI и любой OpenAI-совместимый) при проверке ключа отдают реальный
-список `/models`: до 1000 id с окном контекста и ценами за 1M токенов.
+Providers with `dynamicModels` (OpenAI, OpenRouter, Anthropic, Gemini, Groq, Together,
+DeepSeek, Mistral, xAI, Cerebras, SambaNova and any OpenAI-compatible one) return a real
+`/models` list on key check: up to 1000 ids with context window and per-1M-token prices.
 
-- `POST /api/providers/:id/probe` возвращает `{ok, models: string[], meta: [{id, ctx, in, out, src}]}`.
-- Если сеть или ключ недоступны, `liveModels()` отдаёт каталог с пометкой `src: "catalog"` — такие модели видны, но помечены как каталог, а не как подтверждённые провайдером.
-- `POST /api/providers` с `{id, models: [...]}` сохраняет выбранный список (до 500 id); в `allModels` хранится весь обнаруженный список.
-- В интерфейсе выбор открывается автоматически после успешной проверки, а также кнопкой «Модели» на карточке провайдера. Есть поиск, «выбрать все/снять всё» и ручной ввод id — модель, добавленная вручную, не теряется при следующем сохранении.
-- В конструкторе агента в списке модели показываются только те, что сохранены для конкретного `providerConfigId`.
+- `POST /api/providers/:id/probe` returns `{ok, models: string[], meta: [{id, ctx, in, out, src}]}`.
+- Offline/unreachable keys fall back to the catalog marked `src: "catalog"`.
+- `POST /api/providers` with `{id, models: [...]}` saves the selection (up to 500 ids).
+- The UI opens the picker automatically after a successful check, plus a "Models"
+  button on each provider card. Search, select-all/clear and manual id input included.
+- The agent constructor lists only models saved for that `providerConfigId`.
 
-### Доступ
+### Access
 
-| Метод | Путь | Описание |
+| Method | Path | Description |
 |---|---|---|
-| GET | `/api/access` | Режим, наличие PIN, `isLocal` (приглашения — только авторизованным) |
-| GET | `/api/access/session` | Текущая сессия: `authed`, `isLocal`, `requiresAuth` |
-| POST | `/api/access/login` | `{pin}` или `{invite}` |
-| POST | `/api/access/logout` | Завершить сессию |
-| POST | `/api/access/pin` | Задать/сменить PIN |
-| POST | `/api/access/pin/clear` | Отключить PIN |
+| GET | `/api/access` | Mode, PIN presence, `isLocal` (invites for authorized only) |
+| GET | `/api/access/session` | Current session: `authed`, `isLocal`, `requiresAuth` |
+| POST | `/api/access/login` | `{pin}` or `{invite}` |
+| POST | `/api/access/logout` | End session |
+| POST | `/api/access/pin` | Set/change PIN |
+| POST | `/api/access/pin/clear` | Disable PIN |
 | POST | `/api/access/mode` | `{mode, workspace, requirePinForLan, allowRemoteRun}` |
-| POST | `/api/access/invite` | Создать одноразовый код (`{ttlMin}`) |
-| POST | `/api/access/invite/revoke` | Отозвать все коды |
-| GET | `/api/net` | LAN-адреса и порт (коды — только авторизованным) |
+| POST | `/api/access/invite` | Create one-time code (`{ttlMin}`) |
+| POST | `/api/access/invite/revoke` | Revoke all codes |
+| GET | `/api/net` | LAN addresses and port (codes for authorized only) |
 
-### Прогон агентов
+### Agent runs
 
-| Метод | Путь | Описание |
+| Method | Path | Description |
 |---|---|---|
-| POST | `/api/agents/:id/run` | NDJSON-поток логов + финальный `{type:"done"}` |
-| GET | `/api/health` | Служебный пинг (без авторизации) |
+| POST | `/api/agents/:id/run` | NDJSON log stream + final `{type:"done"}`. Body: `{task, attachments[]}` (workspace-relative paths, images go to vision) |
+| GET | `/api/health` | Service ping (no auth) |
 
-### Сервисы и интеграции
+### Services and integrations
 
-| Метод | Путь | Описание |
+| Method | Path | Description |
 |---|---|---|
-| GET | `/api/services` | Сервисы без ключей: `hasKey`, `keyHintMask`, операции |
-| POST | `/api/services` | `{item}` или `{removeId}` — ключ шифруется при сохранении |
-| POST | `/api/services/:id/check` | Живая проверка настоящим запросом к API сервиса |
-| POST | `/api/services/:id/action` | `{action, args}` — ручной вызов операции (для проверки) |
-| GET | `/api/integrations` | Каталог коннекторов: что вводить, какие операции доступны |
+| GET | `/api/services` | Services without keys: `hasKey`, `keyHintMask`, operations |
+| POST | `/api/services` | `{item}` or `{removeId}` — key is encrypted on save |
+| POST | `/api/services/:id/check` | Live check with a real API request |
+| POST | `/api/services/:id/action` | `{action, args}` — manual operation call |
+| GET | `/api/integrations` | Connector catalog: what to enter, which operations agents get |
 
-### MCP-серверы
+### MCP servers
 
-| Метод | Путь | Описание |
+| Method | Path | Description |
 |---|---|---|
-| GET | `/api/mcp` | Подключённые серверы: транспорт, статус, число инструментов |
-| POST | `/api/mcp` | `{item}` или `{removeId}` — подключение без указания tools |
-| POST | `/api/mcp/test` | Проверка конфигурации до сохранения: handshake + `tools/list` |
-| POST | `/api/mcp/:id/reconnect` | Переподключение и повторная проверка |
+| GET | `/api/mcp` | Connected servers: transport, status, tool count |
+| POST | `/api/mcp` | `{item}` or `{removeId}` — connect without listing tools |
+| POST | `/api/mcp/test` | Pre-save config check: handshake + `tools/list` |
+| POST | `/api/mcp/:id/reconnect` | Reconnect and re-probe |
 
-- Транспорты: `stdio` (запуск команды), `sse`, `http`.
-- `env` передаётся в окружение дочернего процесса для `stdio`; `headers` — в заголовки HTTP/SSE-запросов.
-- Список инструментов **не** задаётся вручную: он берётся из реального ответа `tools/list`. Ручной ввод инструментов удалён, так как он расходился с фактическим сервером.
-- Инструменты попадают к агентам с префиксом `mcp__<сервер>__<инструмент>` и работают в read-only и full режимах.
-- `POST /api/mcp/test` возвращает `{ok, serverName, tools, error, log}` и не требует сохранения — удобно для отладки команды и переменных окружения.
+- Transports: `stdio` (spawn command), `sse`, `http`.
+- `env` goes to the child process environment for `stdio`; `headers` to HTTP/SSE headers.
+- The tool list is **never** typed by hand: it comes from a real `tools/list` response.
+- Tools reach agents as `mcp__<server>__<tool>` and work in readonly and full modes.
+- `POST /api/mcp/test` returns `{ok, serverName, tools, error, log}` without saving.
 
-Ошибки: `400/401/403/404/405/409/413/429` + JSON `{ "error": "..." }`.
+Errors: `400/401/403/404/405/409/413/429` + JSON `{ "error": "..." }`.
 
-Без авторизации защищены все `/api/*`, кроме `health`, `access`, `access/session`,
-`access/login` и `net` — иначе телефон не смог бы показать экран входа.
+All `/api/*` require auth except `health`, `access`, `access/session`,
+`access/login` and `net` — otherwise a phone couldn't render the login screen.
 
-## Интеграции с внешними сервисами
+## Integrations with external services
 
-Агент получает инструменты только для сервисов, которые **подключены** (успешная проверка)
-и **разрешены** ему в конструкторе. Операции записи доступны только в режиме
-«полный доступ»; в режиме «только чтение» модель их вообще не видит.
+An agent only gets tools for services that are **connected** (check passed)
+and **allowed** for it in the constructor. Write operations appear only in
+"full access" mode; in readonly mode the model never sees them.
 
-| Сервис | Ключ | Операции |
+| Service | Key | Operations |
 |---|---|---|
-| Telegram | токен бота от @BotFather | отправить сообщение, прочитать входящие, информация о чате, webhook |
-| Google Drive | OAuth access token (`…/auth/drive`) | список файлов, скачать, создать папку, обновить, открыть доступ, удалить |
-| GitHub | personal access token (`repo`) | репозитории, задачи, создать задачу, комментарий, прочитать файл |
-| Slack | bot token (`xoxb-…`) | отправить в канал, каналы, участники, история |
-| Notion | internal integration token (`secret_…`) | поиск, запрос к базе, создать страницу, дописать блок |
-| Discord | bot token | отправить в канал, каналы сервера |
-| GitLab | personal access token (`api`) | проекты, задачи, создать задачу, прочитать файл |
-| Trello | ключ и токен как `key:token` | доски, колонки, карточки, создать карточку |
-| Погода (OpenWeather) | API key | погода сейчас, прогноз |
-| Google Поиск | API key + CX поисковой системы | поиск в Google (до 10 результатов) |
-| Exa AI | API key | нейропоиск + чтение страниц целиком |
-| RSS-ленты | ключ не нужен, адрес ленты | чтение новостей (habr, ведомости и любые RSS/Atom) |
-| Hacker News | ключ не нужен | поиск и главная техноновостей |
-| Крипта (CoinGecko) | ключ не нужен | курсы монет, топ по капитализации |
-| Валюты | ключ не нужен | курсы мировых валют (кроме RUB), конвертация |
-| Википедия | ключ не нужен | справки и поиск статей |
-| Почта (Resend) | API key (`re_…`) | отправить письмо |
-| Jira | email и API-токен как `email:token` + адрес сайта | поиск задач (JQL), карточка, создать задачу |
-| Linear | Personal API key | список задач, создать задачу |
-| Airtable | Personal Access Token + ID базы (`app…`) | строки таблицы, добавить строку |
-| Supabase | service_role/anon key + URL проекта | прочитать строки, добавить строку |
-| SearXNG | ключ не нужен, адрес инстанса | поиск в вебе без привязки к Google |
-| Webhook / HTTP | любой Bearer-токен | произвольный HTTP-запрос к своему сервису |
-| Obsidian | ключ не нужен, только путь к хранилищу | список заметок, прочитать, создать/перезаписать, поиск |
+| Telegram | bot token from @BotFather | send message, read incoming, chat info, webhook |
+| Google Drive | OAuth access token (`…/auth/drive`) | list files, download, create folder, update, share, delete |
+| GitHub | personal access token (`repo`) | repos, issues, create issue, comment, read file |
+| Slack | bot token (`xoxb-…`) | send to channel, channels, members, history |
+| Notion | internal integration token (`secret_…`) | search, database query, create page, append block |
+| Discord | bot token | send to channel, server channels |
+| GitLab | personal access token (`api`) | projects, issues, create issue, read file |
+| Trello | key and token as `key:token` | boards, lists, cards, create card |
+| Weather (OpenWeather) | API key | current weather, forecast |
+| Google Search | API key + search-engine CX | Google search (up to 10 results) |
+| Exa AI | API key | neural search + full page reading |
+| RSS feeds | no key, feed URL | news reading (habr, vedomosti, any RSS/Atom) |
+| Hacker News | no key | search and tech front page |
+| Crypto (CoinGecko) | no key | coin prices, top by market cap |
+| Currencies | no key | world currency rates (except RUB), conversion |
+| Wikipedia | no key | summaries and article search |
+| Mail (Resend) | API key (`re_…`) | send email |
+| Jira | email and API token as `email:token` + site URL | JQL search, issue card, create issue |
+| Linear | Personal API key | list issues, create issue |
+| Airtable | Personal Access Token + base ID (`app…`) | table rows, add row |
+| Supabase | service_role/anon key + project URL | read rows, insert row |
+| SearXNG | no key, instance URL | web search without Google |
+| Webhook / HTTP | any Bearer token | arbitrary HTTP request to your service |
+| Obsidian | no key, just vault path | list notes, read, create/overwrite, search |
 
-Инструменты называются `svc_<сервис>_<операция>`, например `svc_telegram_sendMessage`.
-Адреса API зашиты в коде — произвольный URL агент в интеграции не передаёт.
+Tools are named `svc_<service>_<operation>`, e.g. `svc_telegram_sendMessage`.
 
-### Как подключить
+### How to connect
 
-1. **Подключения → Сервисы** → выберите сервис в блоке «Доступные интеграции» → «Подключить».
-2. Вставьте ключ. Он шифруется в `data/.secret` и больше не отдаётся наружу —
-   в API видны только `hasKey` и отпечаток вида `12345:est`.
-3. Нажмите «проверить»: NEXUS выполнит настоящий запрос к API сервиса.
-4. **Конструктор** → у агента включите этот сервис в разделе «сервисы».
+1. **Connections → Services** → pick a service under "Available integrations" → "Connect".
+2. Paste the key. It is encrypted into `data/.secret` and never served back —
+   the API only shows `hasKey` and a fingerprint like `12345:est`.
+3. Press "Check": NEXUS performs a real request against the service API.
+4. **Constructor** → enable this service for the agent under "services".
 
-Кнопка «операции» на карточке позволяет вызвать любую операцию вручную — удобно,
-чтобы проверить ключ реальным действием, а не только проверкой аккаунта.
+The "operations" button on each card runs any operation manually — handy for
+verifying a key with a real action, not just the account check.
 
-### Добавление своей интеграции
+### Adding your own integration
 
-Все коннекторы лежат в `lib/integrations.js`. Для нового сервиса добавьте объект с
-полями `id`, `name`, `keyLabel`, `verify(creds)` и `actions[]` в `INTEGRATIONS` —
-интерфейс, проверка и выдача инструментов агенту подхватятся автоматически.
+All connectors live in `lib/integrations.js`. Add an object with
+`id`, `name`, `keyLabel`, `verify(creds)` and `actions[]` to `INTEGRATIONS` —
+UI, checks and agent tool grants pick it up automatically.
 
-## Поддерживаемые LLM-провайдеры
+## Supported LLM providers
 
 OpenAI, OpenRouter, Anthropic, Ollama, Google Gemini, Groq, Together AI, DeepSeek,
 Mistral, xAI Grok, Moonshot (Kimi), Zhipu GLM, Qwen (Alibaba), Cohere, Fireworks AI,
 Perplexity, Novita AI, DeepInfra, Hyperbolic, Nebius, Cerebras, SambaNova,
-YandexGPT, GigaChat (Сбер), LM Studio, vLLM
-и любой OpenAI-совместимый адрес (поле base URL).
-Для Ollama/LM Studio/vLLM ключ не нужен, модели запрашиваются вживую.
-YandexGPT: модель указывайте как `folder-id/yandexgpt` (или `…/yandexgpt-lite`),
-ключ — API-ключ сервисного аккаунта; инструменты не поддерживаются API Яндекса,
-агент отвечает текстом, а файлы подтягивает через RAG.
-GigaChat: ключ из Studio (Authorization key), OAuth-токен обновляется сам.
+YandexGPT, GigaChat (Sber), LM Studio, vLLM
+and any OpenAI-compatible address (base URL field).
+No key needed for Ollama/LM Studio/vLLM; models are listed live.
+YandexGPT: model as `folder-id/yandexgpt` (or `…/yandexgpt-lite`),
+service-account API key; Yandex API has no tools, the agent answers with text
+while files come through RAG.
+GigaChat: Studio key (Authorization key), OAuth token refreshes itself.
 
-## Разделы интерфейса
+## Interface sections
 
-1. **Пульт** (`#/`) — чат управления на весь экран в духе мессенджера: обычный текст становится
-   задачей выбранному получателю (вся команда или конкретные агенты). К сообщению
-   можно прикрепить рабочие файлы скрепкой, перетаскиванием или вставкой — они лягут в `uploads/`
-   рабочей папки, агент прочитает их через `read_file`, а картинки (png/jpg/gif/webp)
-   модель ещё и **видит** через vision (OpenAI, Anthropic, Gemini, Ollama; скриншоты —
-   инструментом `screenshot`). Превью картинок — прямо в чате. Весь ход работы
-   виден в консоли выполнения, а в чат падает только готовый ответ (ошибки — сразу).
-   Длинные ответы сворачиваются кнопкой «Показать полностью», у каждого ответа —
-   кнопка «копировать», разметка Markdown
-   (заголовки, списки, таблицы, код) рисуется рамками, блоки кода — с кнопкой
-   «В файл» (сохранение в рабочую папку, только полный доступ). Команда `/найти`
-   ищет по переписке. Пока агент работает —
-   индикатор «печатает…» с номером шага. Есть голосовой ввод
-    (микрофон, распознавание в браузере) и очистка переписки. Команды: `/вместе` — собрать группу для одной задачи;
-  `/команда Имя | Миссия | роли` — создать команду; `/компания` — целая ИИ-компания
-  из 9 агентов с весёлыми эмодзи-аватарами в один клик;
-   `/подключить`, `/телеграм`, `/модели`, `/соцсети`, `/пк`, `/mcp`, `/доступ`, `/пин`,
-   `/повтори`, `/агенты`, `/экспорт`, `/очистить`, `/найти`, `/статус`.
-   `/пауза <имя>` / `/включи <имя>` — выключить/вернуть агента.
-   `/история` — прошлые задачи, `/повтори N` — выполнить заново.
-   Планировщик: `/каждый 30м проверь почту`, `/в 09:00 своди отчёт`,
-   `/расписание`, `/отмена <ID>` — сервер сам запускает агентов по времени,
-   результаты падают в журнал и ленту. Ответы можно озвучить кнопкой динамика.
-   В шапке пульта — индикатор браузера команды (зелёный — открыт, клик поднимает окно).
-   `/исследуй <тема>` — режим глубокого исследования: назначенный исследователь
-   (или выбранный агент) идёт волнами — подвопросы, `web_search` (+ Google/Exa,
-   если подключены), чтение первоисточников, сверка фактов, отчёт в файл
-   `research/<тема>.md` (в полном доступе) или в чат.
-   `/цепочка <задача>` — команда идёт по очереди: каждый дополняет предыдущего,
-   последний собирает ЕДИНЫЙ итог (один файл/ответ), переговоры видны в консоли.
-   `/открой <программа>` — запустить программу на ПК (только полный доступ).
-   `/браузер` — показать окно браузера команды.
-   Несколько исполнителей всегда идут цепочкой: дополняют друг друга, итог один.
-   Этот же экран удобно открыт с телефона. Есть светлая тема в духе ChatGPT
-   (переключатель в подвале сайдбара и в шапке пульта, выбор запоминается).
-2. **Команда** (`#/team`) — герой со статистикой, рабочая папка команды
-   (выбирается при создании, меняется карандашом — все файлы агентов там),
-   запуск всей команды в двух режимах (каждый сам по себе / цепочка с единым итогом),
-   сетка агентов с весёлыми эмодзи-аватарами, кнопка «Новый агент» (окно: имя, роль,
-   аватар, модель, промпт), шторка агента
-   с разрешениями и запуском, лента событий, панель «База знаний» (сколько файлов
-   и кусков видит RAG) и «Пульс системы» с **реальными**
-   метриками узла (CPU, память, диск, аптайм) и сводкой прогонов.
-3. **Конструктор** (`#/constructor`) — расширенный мастер из 4 шагов: миссия →
-   агенты (имя, аватар, модель, креативность, промпт, разрешения, базы знаний) → оркестрация → обзор.
-   Роли: разработчик, исследователь, редактор, аналитик, DevOps, ассистент, тестировщик,
-   дизайнер, менеджер, маркетолог, переводчик, наставник — плюс кнопка «Своя роль»
-   (своё название профессии и правила). У каждого агента прямо в карточке: выбор API-провайдера и модели, привязка
-   сервисов и соцсетей, программ ПК, MCP-серверов и баз знаний. Для ленивых — готовые команды
-   в один клик: ИИ-компания, Исследователи, Разработчики, Автопилот. Если чего-то не хватает,
-   рядом подсказка со ссылкой в Подключения.
-4. **Базы знаний** (`#/kb`) — RAG-наборы: название + папки/файлы рабочей папки + агенты
-   (хоть один, хоть вся команда). Привязанные агенты ищут только в своих базах,
-   остальные видят всю папку. Проверка базы прямо на месте: вопрос → похожие куски.
-5. **Подключения** (`#/connect`) — вкладки:
-   - **LLM-модели** — список провайдеров со статусом, задержкой и моделями; добавление из
-     каталога, проверка ключа, выбор провайдера по умолчанию.
-   - **Сервисы и соцсети** — Telegram, Slack, Discord, Notion, GitHub, Google Drive:
-     добавление, живая проверка ключа.
-   - **Программы ПК** — настоящее сканирование (известные пути + PATH) со слиянием:
-     ваши записи и разрешения не затираются, недоступные помечаются бейджем
-     «файл не найден», а не удаляются.
-   - **MCP-серверы** — свой сервер: транспорт, env/headers, реальная проверка,
-     tools подтягиваются сами, переподключение.
-   - **Доступ** — режим работы, PIN, QR-код для телефона, приглашения.
+1. **Pult** (`#/`) — full-screen messenger-style control chat: plain text becomes
+   a task for the selected recipient (whole team or specific agents). Attach work
+   files with the clip, drag & drop or paste — they land in `uploads/` of the work
+   folder, the agent reads them via `read_file`, and **images are also seen**
+   through vision (OpenAI, Anthropic, Gemini, Ollama). The whole run is visible
+   in the execution console, only the finished answer lands in chat (errors surface
+   immediately). Long answers collapse with "Show more", every answer has a
+   "copy" button, Markdown renders (headings, lists, tables, code with a
+   "To file" button, full access only). `/find` searches history. While the agent
+   works — a "typing…" indicator with step number. Voice input (mic, in-browser
+   recognition) and history clearing. Commands: `/together`, `/team Name |
+   Mission | roles`, `/company` (a whole 9-agent AI company in one click),
+   `/connect`, `/telegram`, `/models`, `/social`, `/pc`, `/mcp`, `/access`,
+   `/pin`, `/repeat`, `/agents`, `/export`, `/clear`, `/find`, `/status`,
+   `/pause <name>` / `/resume <name>`, `/history`, `/repeat N`, `/research`,
+   `/chain`, `/open <program>`, `/browser`, `/screen`. Everything also works in
+   English (`/status`, `/team`, `/chain`…). The same screen works great from a
+   phone. Light theme included (sidebar footer + Pult header toggle, remembered).
+2. **Team** (`#/team`) — hero with stats, team work folder
+   (picked at creation, pencil to change — all agent files live there),
+   whole-team runs in two modes (each on their own / chain with one verdict),
+   agent grid with fun emoji avatars, "New agent" window (name, role, avatar,
+   model, prompt), agent drawer with permissions and runs, event feed,
+   "Knowledge base" panel (how many files/chunks RAG sees) and "System pulse"
+   with **real** node metrics (CPU, memory, disk, uptime) plus run summaries.
+3. **Knowledge bases** (`#/kb`) — RAG sets: folders/files + assigned agents
+   (one or the whole crew). Bound agents search only their bases.
+4. **Constructor** (`#/constructor`) — extended 4-step wizard: mission →
+   agents (model, creativity, prompt, permissions, knowledge bases) → orchestration → review.
+   Per-agent card: LLM provider + model, service/social, PC program and MCP bindings.
+   Roles: developer, researcher, editor, analyst, DevOps, assistant, tester, designer,
+   manager, marketer, translator, mentor — plus a "Custom role" button (your own
+   profession name and rules). One-click presets: AI company, Researchers,
+   Developers, Autopilot.
+5. **Connections** (`#/connect`) — tabs:
+   - **LLM models** — providers with status, latency and models; catalog add,
+     key check, default provider pick.
+   - **Services & socials** — Telegram, Slack, Discord, Notion, GitHub, Google Drive:
+     add, live key check.
+   - **PC programs** — real scan (known paths + PATH) merged with your list:
+     nothing of yours is overwritten, missing files get a "file not found" badge.
+   - **MCP servers** — your server: transport, env/headers, real check,
+     tools pull themselves, reconnect.
+   - **Access** — work mode, PIN, phone QR, invites.
 
-Консоль внизу показывает живой «печатный» поток логов во время прогонов:
-запуски, эстафеты цепочки, мысли вслух рассуждающих моделей — и готовые ответы.
-На телефоне внизу появляется компактная навигация под большой палец.
+The bottom console shows the live "typed" log stream during runs:
+launches, chain relays, thinking aloud from reasoning models — and final answers.
+Compact thumb-friendly navigation appears on phones.

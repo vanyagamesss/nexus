@@ -1,6 +1,7 @@
 /* NEXUS — точка входа: роутер hash-SPA, статус системы, инициализация */
 
 import { store, loadAll, refreshSession, login } from './store.js';
+import { t, localeTag, initI18n, applyI18n, getLang, langName, setLang, nextLang } from './i18n.js';
 import { initConsole, logSys } from './console.js';
 import { icon, toast, esc, reducedMotion, toggleTheme, getTheme } from './ui.js';
 import { initPalette } from './palette.js';
@@ -30,7 +31,7 @@ let renderSeq = 0;
 function currentPath() {
   const raw = location.hash.replace(/^#/, '') || '/';
   if (!ROUTES[raw]) {
-    toast('Нет такого раздела', `«${raw}» — открываю Пульт`, 'warn');
+    toast(t('app.no_route'), t('app.no_route_text', { path: raw }), 'warn');
     return '/';
   }
   return raw;
@@ -79,9 +80,9 @@ async function render() {
       <div class="page">
         <div class="empty" style="max-width:640px;margin:40px auto">
           <div class="empty-icon" style="color:var(--rose)">${icon('alert')}</div>
-          <h3>Не удалось открыть раздел</h3>
-          <p>${esc(e.message || 'Неизвестная ошибка')}</p>
-          <button class="btn btn-primary" onclick="location.reload()">${icon('refresh')}Перезагрузить</button>
+          <h3>${esc(t('app.render_fail'))}</h3>
+          <p>${esc(e.message || t('app.unknown_err'))}</p>
+          <button class="btn btn-primary" onclick="location.reload()">${icon('refresh')}${esc(t('app.reload'))}</button>
         </div>
       </div>`;
   }
@@ -96,7 +97,7 @@ function setSys(state, text) {
 
 /** Экран входа для удалённых устройств: PIN либо одноразовый код приглашения. */
 function showLogin() {
-  setSys('wait', 'требуется вход');
+  setSys('wait', t('app.sys_login'));
   const acc = store.access || {};
   const pinOnly = acc.pinEnabled && !(acc.invites || []).length;
 
@@ -105,20 +106,20 @@ function showLogin() {
       <div class="login-wrap">
         <div class="panel login-card">
           <div class="login-logo">${icon('bot')}</div>
-          <h2>Вход в NEXUS</h2>
-          <p class="login-sub">Узел защищён. Введите PIN-код, заданный на этом компьютере.</p>
+          <h2>${esc(t('app.login_title'))}</h2>
+          <p class="login-sub">${esc(t('app.login_sub'))}</p>
           <form id="loginForm" autocomplete="off">
             <div class="field">
-              <label for="lgPin">${pinOnly ? 'PIN-код' : 'PIN-код или код приглашения'}</label>
+              <label for="lgPin">${esc(pinOnly ? t('app.login_pin') : t('app.login_pin_or_invite'))}</label>
               <input class="input pin-input" id="lgPin" inputmode="text" autocomplete="one-time-code"
                 placeholder="••••••" maxlength="64" autofocus>
             </div>
             <div id="lgErr" role="alert" aria-live="polite"></div>
-            <button class="btn btn-primary login-go" id="lgGo" type="submit">${icon('check')}Войти</button>
+            <button class="btn btn-primary login-go" id="lgGo" type="submit">${icon('check')}${esc(t('app.login_go'))}</button>
           </form>
           <div class="login-hint">
             ${icon('info')}
-            <span>Нет кода? Откройте NEXUS на самом компьютере: в разделе «Настройки → Доступ» создайте приглашение.</span>
+            <span>${esc(t('app.login_hint'))}</span>
           </div>
         </div>
       </div>
@@ -140,25 +141,37 @@ function showLogin() {
     const raw = pin.value.trim();
     if (!raw) return;
     go.disabled = true;
-    go.innerHTML = '<span class="spinner"></span>Проверяем';
+    go.innerHTML = `<span class="spinner"></span>${esc(t('app.login_checking'))}`;
     /* Чисто цифры — это PIN, иначе пробуем как код приглашения. */
     const body = /^\d+$/.test(raw) ? { pin: raw } : { invite: raw };
     try {
       await login(body);
       location.reload();
     } catch (ex) {
-      err.innerHTML = `<div class="banner banner-err" style="margin:0">${esc(ex.message || 'Неверный код')}</div>`;
+      err.innerHTML = `<div class="banner banner-err" style="margin:0">${esc(ex.message || t('app.login_bad'))}</div>`;
       go.disabled = false;
-      go.innerHTML = `${icon('check')}Войти`;
+      go.innerHTML = `${icon('check')}${esc(t('app.login_go'))}`;
       pin.select();
     }
   });
 }
 
 async function boot() {
+  initI18n();
+  applyI18n();
+  try { document.title = t('app.title'); } catch { /* ignore */ }
   initConsole();
   initPalette();
-  setSys('wait', 'подключение…');
+  setSys('wait', t('app.sys_connecting'));
+
+  /* Переключатель языка EN/RU/中文 */
+  const langBtn = document.getElementById('langBtn');
+  const langTag = document.getElementById('langTag');
+  if (langTag) langTag.textContent = langName(getLang());
+  langBtn?.addEventListener('click', () => {
+    toast(t('app.lang_t'), t('app.lang_d', { lang: langName(nextLang()) }), 'ok');
+    setTimeout(() => setLang(nextLang()), 450);
+  });
 
   /* Горячие клавиши: 1/2/3 — разделы, ? — помощь (вне полей ввода) */
   window.addEventListener('keydown', (e) => {
@@ -168,7 +181,7 @@ async function boot() {
     if (e.key === '1') location.hash = '#/';
     else if (e.key === '2') location.hash = '#/team';
     else if (e.key === '3') location.hash = '#/connect';
-    else if (e.key === '?') toast('Горячие клавиши', 'Ctrl+K — палитра · 1/2/3 — разделы · Ctrl+Enter — отправить · Esc — закрыть', 'ok');
+    else if (e.key === '?') toast(t('app.hotkeys_title'), t('app.hotkeys_text'), 'ok');
   });
 
   /* Переключатель светлой/тёмной темы в подвале сайдбара */
@@ -177,7 +190,7 @@ async function boot() {
     if (!themeBtn) return;
     const light = getTheme() === 'light';
     themeBtn.setAttribute('aria-pressed', String(light));
-    themeBtn.title = light ? 'Тёмная тема' : 'Светлая тема';
+    themeBtn.title = light ? t('app.theme_dark') : t('app.theme_light');
   };
   themeBtn?.addEventListener('click', () => { toggleTheme(); paintThemeBtn(); });
   paintThemeBtn();
@@ -199,20 +212,20 @@ async function boot() {
     const online = store.agents.filter((a) => a.status !== 'offline').length;
     setSys(store.offline ? 'down' : 'ok',
       store.offline
-        ? `офлайн · кэш от ${new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}`
-        : `api ok · ${online} из ${store.agents.length} в сети`);
-    if (store.offline) toast('Офлайн-режим', 'Сервер недоступен, показан локальный кэш', 'warn');
+        ? t('app.sys_offline', { time: new Date().toLocaleTimeString(localeTag(), { hour: '2-digit', minute: '2-digit' }) })
+        : t('app.sys_online', { online, total: store.agents.length }));
+    if (store.offline) toast(t('app.offline_title'), t('app.offline_text'), 'warn');
     await render();
-    logSys('система готова · ожидание задач');
+    logSys(t('app.ready_log'));
   } catch (e) {
-    setSys('down', 'нет связи с api');
+    setSys('down', t('app.sys_down'));
     view.innerHTML = `
       <div class="page">
         <div class="empty" style="max-width:640px;margin:48px auto">
           <div class="empty-icon" style="color:var(--rose)">${icon('alert')}</div>
-          <h3>Сервер NEXUS не отвечает</h3>
-          <p>${esc(e.message || 'Запустите сервер командой')} <span class="mono">node server.js</span> в папке проекта и повторите попытку.</p>
-          <button class="btn btn-primary" id="retryBoot">${icon('refresh')}Повторить подключение</button>
+          <h3>${esc(t('app.boot_fail_title'))}</h3>
+          <p>${esc(e.message || t('app.boot_fail_text'))} <span class="mono">node server.js</span> ${esc(t('app.boot_fail_hint'))}</p>
+          <button class="btn btn-primary" id="retryBoot">${icon('refresh')}${esc(t('app.retry'))}</button>
         </div>
       </div>`;
     view.querySelector('#retryBoot').addEventListener('click', () => location.reload());
@@ -226,9 +239,9 @@ async function boot() {
       const r = await fetch('./api/health');
       if (!r.ok) throw new Error('bad');
       const ms = Math.round(performance.now() - t0);
-      setSys('ok', `api ok · ${ms} мс`);
+      setSys('ok', t('app.sys_ping', { ms }));
     } catch {
-      setSys('down', 'нет связи с api');
+      setSys('down', t('app.sys_down'));
     }
   }, 30000);
 
@@ -240,4 +253,5 @@ async function boot() {
   }
 }
 
+document.title = t('app.title');
 boot();

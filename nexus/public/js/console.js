@@ -3,8 +3,16 @@
 import { runAgentStream } from './api.js';
 import { markLocalBusy, refreshTeam, emit, store } from './store.js';
 import { esc, reducedMotion, fmtInt } from './ui.js';
+import { t } from './i18n.js';
 
 const PREFIX = { info: '→', ok: '✔', warn: '!', err: '✗', mcp: '◆', sys: '»', think: '…' };
+
+/** Ошибка «остановлено оператором» с языконезависимым маркером stopped. */
+function stoppedError() {
+  const e = new Error(t('console.stopped'));
+  e.stopped = true;
+  return e;
+}
 
 let els = {};
 let chain = Promise.resolve();
@@ -40,7 +48,7 @@ export function openDock() {
   if (!els.dock || isOpen()) return;
   els.dock.dataset.state = 'open';
   els.toggle.setAttribute('aria-expanded', 'true');
-  els.toggle.setAttribute('aria-label', 'Свернуть консоль');
+  els.toggle.setAttribute('aria-label', t('console.collapse'));
   document.body.classList.add('dock-open');
 }
 
@@ -48,13 +56,13 @@ export function closeDock() {
   if (!els.dock) return;
   els.dock.dataset.state = 'closed';
   els.toggle.setAttribute('aria-expanded', 'false');
-  els.toggle.setAttribute('aria-label', 'Развернуть консоль');
+  els.toggle.setAttribute('aria-label', t('console.expand'));
   document.body.classList.remove('dock-open');
 }
 
 function showEmpty() {
   if (!els.log || els.log.querySelector('.log-line')) return;
-  els.log.innerHTML = '<div class="dock-empty">// консоль пуста — запустите агента или всю команду<span class="log-caret"></span></div>';
+  els.log.innerHTML = `<div class="dock-empty">${esc(t('console.empty'))}<span class="log-caret"></span></div>`;
 }
 
 export function clearLog(quiet) {
@@ -63,7 +71,7 @@ export function clearLog(quiet) {
   lineQueue = [];
   pending = 0;
   showEmpty();
-  els.agent.textContent = 'ожидание команды';
+  els.agent.textContent = t('console.waiting');
   els.badge.hidden = true;
   if (quiet) els.log.scrollTop = 0;
 }
@@ -173,15 +181,15 @@ export function isRunning() {
 export function runAgent(agent, task, { onStart, onDone, onLine, signal, attachments } = {}) {
   const job = async () => {
     if (signal && signal.aborted) {
-      if (onDone) onDone(new Error('Остановлено'));
+      if (onDone) onDone(stoppedError());
       return null;
     }
     openDock();
     runCount++;
     setAgent(`${agent.name} · ${agent.role}`);
-    setBadge('выполняет…');
+    setBadge(t('console.running'));
     startTimer();
-    logSys(`── запуск «${agent.name}» · задача: ${task}`);
+    logSys(t('console.log_start', { name: agent.name, task }));
     markLocalBusy(agent.id, task);
     if (onStart) onStart();
     let thinkBuf = '';
@@ -206,31 +214,31 @@ export function runAgent(agent, task, { onStart, onDone, onLine, signal, attachm
             const now = Date.now();
             if (now - thinkLast > 4000) {
               thinkLast = now;
-              pushLine('think', `думает… ${thinkBuf.slice(-220)}`);
+              pushLine('think', t('console.thinking', { buf: thinkBuf.slice(-220) }));
             }
           } else if (ev.type === 'done') {
-            pushLine('ok', `сводка: ${ev.stats.tokens} токенов · ${ev.stats.steps} шагов · ${ev.stats.seconds} с`);
+            pushLine('ok', t('console.summary', { tokens: ev.stats.tokens, steps: ev.stats.steps, seconds: ev.stats.seconds }));
           }
           /* Внешний подписчик (чат-пульт) получает те же события живьём. */
           if (onLine) { try { onLine(ev); } catch { /* игнор */ } }
         },
       });
       if (done) {
-        if (thinkCount && thinkBuf) pushLine('think', `додумал · всего ${thinkCount} фрагментов`);
-        pushLine('sys', `«${agent.name}» завершил(а) задачу`);
-        notify(`NEXUS: ${agent.name} готов`, (done.text || task || '').slice(0, 180));
+        if (thinkCount && thinkBuf) pushLine('think', t('console.thought_through', { n: thinkCount }));
+        pushLine('sys', t('console.agent_done', { name: agent.name }));
+        notify(t('console.notify_ready', { name: agent.name }), (done.text || task || '').slice(0, 180));
         await refreshTeam();
       }
       if (onDone) onDone(null, done);
       return done;
     } catch (e) {
       if (e && (e.name === 'AbortError' || (signal && signal.aborted))) {
-        pushLine('warn', `«${agent.name}» остановлен(а) оператором`);
-        if (onDone) onDone(new Error('Остановлено оператором'));
+        pushLine('warn', t('console.agent_stopped', { name: agent.name }));
+        if (onDone) onDone(stoppedError());
         return null;
       }
-      pushLine('err', `сбой запуска: ${e.message}`);
-      notify(`NEXUS: ${agent.name} — ошибка`, e.message);
+      pushLine('err', t('console.launch_fail', { msg: e.message }));
+      notify(t('console.notify_error', { name: agent.name }), e.message);
       if (onDone) onDone(e);
       return null;
     } finally {
@@ -256,24 +264,24 @@ export async function runTeam(agents, taskFor, opts = {}) {
   if (!list.length) return;
   const chain = !!opts.chain;
   openDock();
-  logSys(`════════ запуск команды «${store.team ? store.team.name : ''}» · агентов: ${list.length}${chain ? ' · режим: ЦЕПОЧКА' : ''} ════════`);
+  logSys(t('console.team_start', { team: store.team ? store.team.name : '', n: list.length, chain: chain ? t('console.team_chain') : '' }));
   let context = '';
   let stopped = false;
   for (let i = 0; i < list.length; i++) {
     if (opts.signal && opts.signal.aborted) {
       stopped = true;
-      logSys('пакет остановлен оператором');
+      logSys(t('console.batch_stopped'));
       break;
     }
     const a = list[i];
     const base = typeof taskFor === 'function' ? taskFor(a, i, context) : String(taskFor);
     const isLast = chain && i === list.length - 1;
     const task = chain && context
-      ? `${base}\n\nЭстафета от коллег (не начинай с нуля — дополни и улучши):${context}`
-        + (isLast ? '\nТы финишёр цепочки: собери ЕДИНЫЙ итоговый результат (один файл / один ответ), а не свой отдельный.' : '')
+      ? `${base}\n\n${t('console.relay_ctx', { ctx: context })}`
+        + (isLast ? `\n${t('console.relay_finisher')}` : '')
       : base;
-    logInfo(`[${i + 1}/${list.length}] очередь: ${a.name} — ${task.slice(0, 120)}`);
-    if (chain && context) logSys(`переговоры: ${i === 0 ? 'старт' : `контекст ${context.length} символов → ${a.name}`}`);
+    logInfo(t('console.queued', { i: i + 1, n: list.length, name: a.name, task: task.slice(0, 120) }));
+    if (chain && context) logSys(t('console.talks', { ctx: i === 0 ? t('console.talks_start') : t('console.talks_ctx', { n: context.length, name: a.name }) }));
     /* onLine пробрасываем с привязкой к агенту, чтобы чат знал автора строк. */
     const done = await runAgent(a, task, {
       ...opts,
@@ -282,13 +290,13 @@ export async function runTeam(agents, taskFor, opts = {}) {
     });
     if (chain && done && done.text) {
       context += `\n\n--- ${a.name}: ${done.text.slice(0, 3000)}`;
-      logOk(`эстафета: ${a.name} передал дальше (${done.text.length} символов)`);
+      logOk(t('console.relay_pass', { name: a.name, n: done.text.length }));
     } else if (chain) {
-      logSys(`эстафета: ${a.name} ничего не передал — следующий идёт без его контекста`);
+      logSys(t('console.relay_skip', { name: a.name }));
     }
     if (i < list.length - 1) await new Promise((r) => setTimeout(r, 260));
   }
-  logSys(stopped ? '════════ пакет остановлен ════════' : '════════ команда завершила пакет задач ════════');
+  logSys(stopped ? t('console.batch_stopped_bar') : t('console.batch_done_bar'));
   emit('team');
 }
 
