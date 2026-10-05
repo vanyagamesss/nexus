@@ -18,6 +18,7 @@ import { dict_team } from './i18n.team.js';
 import { dict_kb } from './i18n.kb.js';
 import { dict_ctor } from './i18n.ctor.js';
 import { dict_settings } from './i18n.settings.js';
+import { dict_pc } from './i18n.pc.js';
 
 export const LANGS = ['en', 'ru', 'zh'];
 export const LANG_NAMES = { en: 'EN', ru: 'RU', zh: '中文' };
@@ -43,7 +44,7 @@ function merge(dst, src) {
 }
 
 [dict_app, dict_ui, dict_console, dict_palette, dict_control,
-  dict_team, dict_kb, dict_ctor, dict_settings].forEach((d) => merge(dicts, d));
+  dict_team, dict_kb, dict_ctor, dict_settings, dict_pc].forEach((d) => merge(dicts, d));
 
 export function getLang() {
   try {

@@ -21,6 +21,6 @@ export const dict_palette = { palette: {
   dialog_aria: { en: 'Command palette', ru: 'Командная палитра', zh: '命令面板' },
   placeholder: { en: 'Command, section, or agent… (Esc to close)', ru: 'Команда, раздел или агент… (Esc — закрыть)', zh: '命令、版块或智能体…（Esc 关闭）' },
   input_aria: { en: 'Search commands', ru: 'Поиск команды', zh: '搜索命令' },
-  footer: { en: '↑↓ — navigate · enter — run · 1/2/3 — sections', ru: '↑↓ — выбор · enter — выполнить · 1/2/3 — разделы', zh: '↑↓ — 选择 · enter — 执行 · 1/2/3 — 版块' },
+  footer: { en: '↑↓ — navigate · enter — run · 1–5 — sections', ru: '↑↓ — выбор · enter — выполнить · 1–5 — разделы', zh: '↑↓ — 选择 · enter — 执行 · 1–5 — 版块' },
   empty: { en: 'Nothing found — try "status" or an agent name', ru: 'Ничего не найдено — попробуйте «статус» или имя агента', zh: '未找到——试试“status”或智能体名称' },
 } };

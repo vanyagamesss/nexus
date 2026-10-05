@@ -140,7 +140,7 @@ Captchas, SMS and 2FA can't be passed — the agent will honestly say so.
 | `lib/providers.js` | Provider catalog, LLM adapters, live model list |
 | `lib/agent.js` | Agent loop: prompt → RAG auto-context → tools → answer |
 | `lib/rag.js` | Knowledge base: workspace chunking, word search, panel summary |
-| `lib/tools.js` | FS/system tools, `rag_search`, `calc`, `download_file`, `screenshot` (vision), `zip_pack`/`zip_unpack`, path jail, SSRF guard, input bridge, web search & read, PowerShell commands, clipboard |
+| `lib/tools.js` | FS/system tools, `rag_search`, `calc`, `download_file`, `screenshot` (vision), `zip_pack`/`zip_unpack`, `pc_processes`/`pc_process_kill`, path jail, SSRF guard, input bridge, web search & read, PowerShell commands, clipboard |
 | `lib/browser.js` | Team's own browser: Chrome + CDP, own profile, screenshots |
 | `lib/mcp.js` | MCP client: stdio / SSE / HTTP, handshake and tools list |
 | `lib/tgbridge.js` | Telegram → team bridge: incoming polling, chat allowlist, chain debates, @Name, task runs |
@@ -173,6 +173,13 @@ providers answer 400.
 | GET/POST | `/api/kb` | RAG knowledge bases. POST: `{item}` / `{removeId}` |
 | POST | `/api/kb/search` | Test a base: `{id, query}` → matching chunks |
 | GET | `/api/files?path=` | Image previews from the work folder (png/jpg/gif/webp/bmp ≤ 8 MB) |
+| GET | `/api/pc/info` | PC status: platform, mode, screen size |
+| POST | `/api/pc/screenshot` | Desktop screenshot → `{path, size, bytes}` (viewed via `/api/files`) |
+| POST | `/api/pc/input` | Keyboard & mouse: `{kind: key|text|mouse, ...}` |
+| GET | `/api/pc/processes` | Process list: `[{pid, name, cpu, memMb, started, title, protected}]` |
+| POST | `/api/pc/process-kill` | Kill by `{pid}` (system processes + own server blocked) |
+| GET/POST | `/api/pc/clipboard` | Read clipboard / write `{text}` (≤ 4000 chars) |
+| POST | `/api/pc/command` | PowerShell command → `{ok, exitCode, ms, stdout, stderr}` |
 | GET/POST | `/api/mcp` | MCP servers. POST: `{item}` / `{removeId}` |
 | POST | `/api/services/:id/check` | Live service check (latency + key validation) |
 | POST | `/api/mcp/:id/reconnect` | MCP reconnect with log |
@@ -350,14 +357,19 @@ GigaChat: Studio key (Authorization key), OAuth token refreshes itself.
    with **real** node metrics (CPU, memory, disk, uptime) plus run summaries.
 3. **Knowledge bases** (`#/kb`) — RAG sets: folders/files + assigned agents
    (one or the whole crew). Bound agents search only their bases.
-4. **Constructor** (`#/constructor`) — extended 4-step wizard: mission →
+4. **PC control** (`#/pc`) — live management of this machine: screen screenshot,
+   quick program launch, process list with kill (system processes blocked),
+   clipboard read/write, PowerShell terminal, keyboard & mouse pad.
+   Everything needs "Full access" mode; the server re-checks every action.
+   Agents get `pc_processes` (full mode) and `pc_process_kill` (input permission).
+5. **Constructor** (`#/constructor`) — extended 4-step wizard: mission →
    agents (model, creativity, prompt, permissions, knowledge bases) → orchestration → review.
    Per-agent card: LLM provider + model, service/social, PC program and MCP bindings.
    Roles: developer, researcher, editor, analyst, DevOps, assistant, tester, designer,
    manager, marketer, translator, mentor — plus a "Custom role" button (your own
    profession name and rules). One-click presets: AI company, Researchers,
    Developers, Autopilot.
-5. **Connections** (`#/connect`) — tabs:
+6. **Connections** (`#/connect`) — tabs:
    - **LLM models** — providers with status, latency and models; catalog add,
      key check, default provider pick.
    - **Services & socials** — Telegram, Slack, Discord, Notion, GitHub, Google Drive:

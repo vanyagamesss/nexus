@@ -1,6 +1,6 @@
 /* NEXUS — офлайн-оболочка. API не кэшируем: данные должны быть живыми. */
 
-const CACHE = 'nexus-shell-v4';
+const CACHE = 'nexus-shell-v5';
 const SHELL = [
   './',
   './index.html',
@@ -21,11 +21,13 @@ const SHELL = [
   './js/i18n.kb.js',
   './js/i18n.ctor.js',
   './js/i18n.settings.js',
+  './js/i18n.pc.js',
   './js/console.js',
   './js/palette.js',
   './js/view-control.js',
   './js/view-main.js',
   './js/view-kb.js',
+  './js/view-pc.js',
   './js/view-constructor.js',
   './js/view-settings.js',
 ];

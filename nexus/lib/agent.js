@@ -57,6 +57,7 @@ function systemPromptFor(agent, ctx) {
     lines.push('2) run_program — открой нужную программу (браузер, Photoshop, Blender) и дождись окна следующим шагом;');
     lines.push('3) input_mouse move/click — наводи и кликай, input_text — печатай короткими кусками, input_key — ENTER, TAB, ctrl+s и т.п.;');
     lines.push('4) после КАЖДОГО действия смотри результат следующим шагом и только потом действуй дальше — не кликай вслепую серией.');
+    lines.push('5) процессы: pc_processes — кто запущен (pid, память, CPU); pc_process_kill — завершить по pid (системные заблокированы). Сначала смотри screenshot, потом действуй.');
     lines.push('СВОЙ БРАУЗЕР (видимое окно Chrome): browser_open — открыть сайт; browser_snapshot — текст и элементы с номерами ref; browser_click — клик по ref; browser_type — ввести текст в поле (submit=true — нажать Enter); browser_back — назад. Так заполняются формы и регистрации: открой, сними слепок, введи, кликни. Капчу, SMS и 2FA пройти нельзя — честно скажи об этом.');
   }
 

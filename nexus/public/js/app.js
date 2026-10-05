@@ -8,6 +8,7 @@ import { initPalette } from './palette.js';
 import * as viewControl from './view-control.js';
 import * as viewMain from './view-main.js';
 import * as viewKb from './view-kb.js';
+import * as viewPc from './view-pc.js';
 import * as viewCtor from './view-constructor.js';
 import * as viewSettings from './view-settings.js';
 
@@ -15,6 +16,7 @@ const ROUTES = {
   '/': viewControl,
   '/team': viewMain,
   '/kb': viewKb,
+  '/pc': viewPc,
   '/connect': viewSettings,
   /* Совместимость со старыми ссылками */
   '/constructor': viewCtor,
@@ -173,14 +175,16 @@ async function boot() {
     setTimeout(() => setLang(nextLang()), 450);
   });
 
-  /* Горячие клавиши: 1/2/3 — разделы, ? — помощь (вне полей ввода) */
+  /* Горячие клавиши: 1–5 — разделы, ? — помощь (вне полей ввода) */
   window.addEventListener('keydown', (e) => {
     const tag = (document.activeElement && document.activeElement.tagName) || '';
     if (/INPUT|TEXTAREA|SELECT/.test(tag)) return;
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     if (e.key === '1') location.hash = '#/';
     else if (e.key === '2') location.hash = '#/team';
-    else if (e.key === '3') location.hash = '#/connect';
+    else if (e.key === '3') location.hash = '#/kb';
+    else if (e.key === '4') location.hash = '#/pc';
+    else if (e.key === '5') location.hash = '#/connect';
     else if (e.key === '?') toast(t('app.hotkeys_title'), t('app.hotkeys_text'), 'ok');
   });
 

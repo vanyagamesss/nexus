@@ -283,12 +283,36 @@ const schemas = {
       },
     },
   },
+  pc_processes: {
+    type: 'function',
+    function: {
+      name: 'pc_processes',
+      description: 'Список запущенных процессов Windows: pid, имя, CPU, память. Только в режиме «полный доступ».',
+      parameters: {
+        type: 'object',
+        properties: { limit: { type: 'integer', description: 'Сколько показать (10–300, по умолчанию 120, топ по памяти)' } },
+        required: [],
+      },
+    },
+  },
+  pc_process_kill: {
+    type: 'function',
+    function: {
+      name: 'pc_process_kill',
+      description: 'Завершить процесс по pid. Системные процессы заблокированы. Только с явного разрешения (input).',
+      parameters: {
+        type: 'object',
+        properties: { pid: { type: 'integer', description: 'PID процесса из pc_processes' } },
+        required: ['pid'],
+      },
+    },
+  },
 };
 
 const READONLY_TOOLS = ['list_dir', 'read_file', 'search', 'rag_search', 'stat', 'system_info', 'web_search', 'web_read', 'calc'];
-const FULL_TOOLS = [...READONLY_TOOLS, 'write_file', 'run_program', 'http_request', 'download_file', 'screenshot', 'zip_pack', 'zip_unpack'];
+const FULL_TOOLS = [...READONLY_TOOLS, 'write_file', 'run_program', 'http_request', 'download_file', 'screenshot', 'zip_pack', 'zip_unpack', 'pc_processes'];
 /* Мощные инструменты ПК: только полный доступ + явное разрешение input */
-const POWER_TOOLS = ['run_command', 'clipboard'];
+const POWER_TOOLS = ['run_command', 'clipboard', 'pc_process_kill'];
 /* Мост ввода: только при явном разрешении агента (permissions.input === true) */
 const INPUT_TOOLS = ['input_screen', 'input_key', 'input_text', 'input_mouse'];
 /* Свой браузер: то же разрешение — это тоже прямое управление ПК */
@@ -1091,7 +1115,14 @@ async function tScreenshot(ctx) {
     `"OK $($b.Width)x$($b.Height)"`,
   );
   if (r.error) return DENIED(r.error);
-  if (r.code !== 0 || !String(r.out || '').startsWith('OK')) return DENIED(`Скриншот не получился: ${r.err || `код ${r.code}`}`);
+  if (r.code !== 0 || !String(r.out || '').startsWith('OK')) {
+    const raw = r.err || `код ${r.code}`;
+    /* AMSI/политики песочницы режут захват экрана на уровне контента скрипта */
+    if (/ScriptContainedMaliciousContent|constrainedlanguage|unauthorizedaccess/i.test(raw)) {
+      return DENIED('Захват экрана заблокирован защитой Windows (AMSI/политика) на этом компьютере. На обычном десктопе с правами пользователя снимок работает.');
+    }
+    return DENIED(`Скриншот не получился: ${raw.slice(0, 300)}`);
+  }
   let buf;
   try {
     buf = await fsp.readFile(dest);
@@ -1155,6 +1186,79 @@ function safeJson(text) {
   } catch {
     return text;
   }
+}
+
+/* Системные процессы: завершение заблокировано и для агентов, и для пульта. */
+const PROTECTED_PROCS = new Set([
+  'system', 'registry', 'smss', 'csrss', 'wininit', 'services', 'lsass', 'lsm',
+  'winlogon', 'fontdrvhost', 'dwm', 'memory compression', 'secure system', 'idle',
+]);
+
+function isProtectedProc(name) {
+  return PROTECTED_PROCS.has(String(name || '').toLowerCase());
+}
+
+/** Список процессов Windows: pid, имя, CPU-секунды, память, старт, заголовок окна. */
+async function tPcProcesses(ctx, args) {
+  if (ctx.mode !== 'full') return DENIED('Режим «только чтение»: список процессов запрещён');
+  if (process.platform !== 'win32') return DENIED('Процессы ПК — только на Windows');
+  const limit = Math.min(Math.max(Number(args.limit) || 120, 10), 300);
+  const r = await psRun('Get-Process | Select-Object Name,Id,CPU,WS,StartTime,MainWindowTitle | ConvertTo-Json -Compress -Depth 2');
+  if (r.error) return DENIED(r.error);
+  if (r.code !== 0) return DENIED(`Не удалось получить процессы: ${r.err || `код ${r.code}`}`);
+  let arr;
+  try {
+    arr = JSON.parse(r.out);
+  } catch {
+    return DENIED('PowerShell вернул некорректный список процессов');
+  }
+  if (!Array.isArray(arr)) arr = [arr];
+  const items = [];
+  for (const p of arr) {
+    if (!p || typeof p !== 'object') continue;
+    const pid = Number(p.Id);
+    if (!Number.isInteger(pid) || pid <= 0) continue;
+    /* PowerShell отдаёт даты как /Date(17912…)/ — приводим к ISO */
+    let started = null;
+    const dm = /\/Date\((-?\d+)\)\//.exec(String((p.StartTime && p.StartTime.value) || p.StartTime || ''));
+    if (dm) {
+      const d = new Date(Number(dm[1]));
+      if (!Number.isNaN(d.getTime())) started = d.toISOString();
+    } else if (p.StartTime) {
+      const d = new Date(p.StartTime);
+      if (!Number.isNaN(d.getTime())) started = d.toISOString();
+    }
+    items.push({
+      pid,
+      name: String(p.Name || '?'),
+      cpu: p.CPU == null ? null : Math.round(Number(p.CPU) * 10) / 10,
+      memMb: p.WS == null ? null : Math.round(Number(p.WS) / 1048576),
+      started,
+      title: String(p.MainWindowTitle || '').slice(0, 80) || null,
+      protected: isProtectedProc(p.Name) || pid === process.pid,
+    });
+  }
+  items.sort((a, b) => (b.memMb || 0) - (a.memMb || 0));
+  return { ok: true, count: items.length, shown: Math.min(limit, items.length), selfPid: process.pid, items: items.slice(0, limit) };
+}
+
+/** Завершить процесс по pid. Системные и сам сервер — под запретом. */
+async function tPcProcessKill(ctx, args) {
+  const denied = inputAllowed(ctx);
+  if (denied) return DENIED(denied);
+  if (process.platform !== 'win32') return DENIED('Завершение процессов — только на Windows');
+  const pid = Number(args.pid);
+  if (!Number.isInteger(pid) || pid <= 0) return DENIED('pid — положительное целое число');
+  if (pid === process.pid) return DENIED('Нельзя завершить сам сервер NEXUS');
+  const chk = await psRun(`(Get-Process -Id ${pid} -ErrorAction Stop).ProcessName`);
+  if (chk.error || chk.code !== 0) return DENIED(`Процесс ${pid} не найден (уже завершён?)`);
+  const name = chk.out.trim();
+  if (isProtectedProc(name)) return DENIED(`«${name}» — системный процесс, завершение заблокировано`);
+  const r = await psRun(`Stop-Process -Id ${pid} -Force; Write-Output OK`);
+  if (r.error || r.code !== 0 || String(r.out || '').trim() !== 'OK') {
+    return DENIED(`Не завершился: ${r.error || r.err || `код ${r.code}`}`);
+  }
+  return { ok: true, pid, name };
 }
 
 /* ------------------------------------- свой браузер команды (через CDP) */
@@ -1556,6 +1660,8 @@ const IMPL = {
   screenshot: tScreenshot,
   zip_pack: tZipPack,
   zip_unpack: tZipUnpack,
+  pc_processes: tPcProcesses,
+  pc_process_kill: tPcProcessKill,
   run_command: tRunCommand,
   clipboard: tClipboard,
   input_screen: tInputScreen,

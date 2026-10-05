@@ -7,6 +7,7 @@ export const dict_app = { app: {
   nav_team: { en: 'Team', ru: 'Команда', zh: '团队' },
   nav_kb: { en: 'Knowledge bases', ru: 'Базы знаний', zh: '知识库' },
   nav_kb_short: { en: 'KB', ru: 'Базы', zh: '知识库' },
+  nav_pc: { en: 'PC', ru: 'ПК', zh: '电脑' },
   nav_connect: { en: 'Connections', ru: 'Подключения', zh: '连接' },
   brand_home: { en: 'NEXUS — home', ru: 'NEXUS — на главную', zh: 'NEXUS — 返回首页' },
   sys_system: { en: 'System', ru: 'Система', zh: '系统' },
@@ -44,7 +45,7 @@ export const dict_app = { app: {
 
   sys_connecting: { en: 'connecting…', ru: 'подключение…', zh: '连接中…' },
   hotkeys_title: { en: 'Keyboard shortcuts', ru: 'Горячие клавиши', zh: '快捷键' },
-  hotkeys_text: { en: 'Ctrl+K — palette · 1/2/3 — sections · Ctrl+Enter — send · Esc — close', ru: 'Ctrl+K — палитра · 1/2/3 — разделы · Ctrl+Enter — отправить · Esc — закрыть', zh: 'Ctrl+K——命令面板 · 1/2/3——版块 · Ctrl+Enter——发送 · Esc——关闭' },
+  hotkeys_text: { en: 'Ctrl+K — palette · 1–5 — sections · Ctrl+Enter — send · Esc — close', ru: 'Ctrl+K — палитра · 1–5 — разделы · Ctrl+Enter — отправить · Esc — закрыть', zh: 'Ctrl+K——命令面板 · 1–5——版块 · Ctrl+Enter——发送 · Esc——关闭' },
   sys_offline: { en: 'offline · cache from {time}', ru: 'офлайн · кэш от {time}', zh: '离线·缓存时间 {time}' },
   sys_online: { en: 'api ok · {online} of {total} online', ru: 'api ok · {online} из {total} в сети', zh: 'api ok · {total} 个中有 {online} 个在线' },
   sys_down: { en: 'no api connection', ru: 'нет связи с api', zh: '无法连接 api' },

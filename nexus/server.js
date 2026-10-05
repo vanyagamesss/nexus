@@ -2120,6 +2120,135 @@ function handleProgramsScan(req, res) {
   sendJSON(res, 200, { ok: true, added, total: list.length, programs: list });
 }
 
+/* --------------------------------------- API: управление ПК (пульт) */
+
+/**
+ * Контекст оператора пульта: человек за экраном в режиме «полный доступ».
+ * Разрешения конкретных агентов здесь ни при чём — действует сам оператор,
+ * поэтому в stub-агенте стоит input:true (как явное согласие человека).
+ */
+function pcCtx() {
+  const conf = auth.config();
+  if (conf.access.mode !== 'full') throw httpError(403, 'Управление ПК доступно только в режиме «полный доступ»');
+  return {
+    root: ragRoot(),
+    mode: 'full',
+    programs: readJSONFile('programs.json') || [],
+    agent: { permissions: { input: true } },
+  };
+}
+
+function handlePcInfo(req, res) {
+  if (req.method !== 'GET') return methodNotAllowed(res, ['GET']);
+  return (async () => {
+    const ctx = pcCtx();
+    const screen = await toolsLib.execute(ctx, 'input_screen', {});
+    sendJSON(res, 200, {
+      ok: true,
+      platform: process.platform,
+      mode: 'full',
+      screen: screen.ok ? { width: screen.width, height: screen.height } : null,
+      screenError: screen.ok ? null : screen.error,
+    });
+  })();
+}
+
+function handlePcScreenshot(req, res) {
+  if (req.method !== 'POST') return methodNotAllowed(res, ['POST']);
+  return (async () => {
+    const out = await toolsLib.execute(pcCtx(), 'screenshot', {});
+    if (!out.ok) throw httpError(500, out.error);
+    /* base64 модели здесь не нужен — картинку фронт заберёт через /api/files */
+    sendJSON(res, 200, { ok: true, path: out.path, size: out.size, bytes: out.bytes, at: new Date().toISOString() });
+  })();
+}
+
+function handlePcInput(req, res) {
+  if (req.method !== 'POST') return methodNotAllowed(res, ['POST']);
+  return readJSON(req).then(async (body) => {
+    const ctx = pcCtx();
+    const kind = String(body.kind || '').toLowerCase();
+    let out;
+    if (kind === 'key') {
+      if (!isStr(body.keys, 1, 60)) throw httpError(400, 'keys — от 1 до 60 символов');
+      out = await toolsLib.execute(ctx, 'input_key', { keys: body.keys.trim() });
+    } else if (kind === 'text') {
+      if (!isStr(body.text, 1, 300)) throw httpError(400, 'text — от 1 до 300 символов');
+      out = await toolsLib.execute(ctx, 'input_text', { text: body.text });
+    } else if (kind === 'mouse') {
+      const action = String(body.action || 'click');
+      if (!['move', 'click', 'double', 'right', 'middle', 'scroll'].includes(action)) {
+        throw httpError(400, 'action — move | click | double | right | middle | scroll');
+      }
+      const args = { action };
+      if (action === 'scroll') {
+        const dy = Number(body.dy);
+        if (!Number.isInteger(dy) || dy < -10 || dy > 10 || dy === 0) throw httpError(400, 'dy — целое от -10 до 10, не 0');
+        args.dy = dy;
+      } else {
+        for (const k of ['x', 'y']) {
+          const v = Number(body[k]);
+          if (!Number.isInteger(v) || v < 0 || v > 16384) throw httpError(400, `${k} — целое 0…16384`);
+          args[k] = v;
+        }
+      }
+      out = await toolsLib.execute(ctx, 'input_mouse', args);
+    } else {
+      throw httpError(400, 'kind — key | text | mouse');
+    }
+    if (!out.ok) throw httpError(500, out.error);
+    sendJSON(res, 200, { ok: true, kind, result: Object.assign({}, out, { tool: undefined, ms: undefined }) });
+  });
+}
+
+function handlePcProcesses(req, res) {
+  if (req.method !== 'GET') return methodNotAllowed(res, ['GET']);
+  return (async () => {
+    const ctx = pcCtx();
+    const out = await toolsLib.execute(ctx, 'pc_processes', {});
+    if (!out.ok) throw httpError(500, out.error);
+    sendJSON(res, 200, { ok: true, count: out.count, items: out.items });
+  })();
+}
+
+function handlePcProcessKill(req, res) {
+  if (req.method !== 'POST') return methodNotAllowed(res, ['POST']);
+  return readJSON(req).then(async (body) => {
+    const out = await toolsLib.execute(pcCtx(), 'pc_process_kill', { pid: body.pid });
+    if (!out.ok) {
+      const status = /заблокировано|сам сервер/i.test(out.error) ? 403 : /не найден|положительное/i.test(out.error) ? 400 : 500;
+      throw httpError(status, out.error);
+    }
+    sendJSON(res, 200, { ok: true, pid: out.pid, name: out.name });
+  });
+}
+
+function handlePcClipboard(req, res) {
+  const ctx = pcCtx();
+  if (req.method === 'GET') {
+    return toolsLib.execute(ctx, 'clipboard', { action: 'get' }).then((out) => {
+      if (!out.ok) throw httpError(500, out.error);
+      sendJSON(res, 200, { ok: true, text: out.text });
+    });
+  }
+  if (req.method !== 'POST') return methodNotAllowed(res, ['GET', 'POST']);
+  return readJSON(req).then(async (body) => {
+    if (!isStr(body.text, 1, 4000)) throw httpError(400, 'text — от 1 до 4000 символов');
+    const out = await toolsLib.execute(ctx, 'clipboard', { action: 'set', text: body.text });
+    if (!out.ok) throw httpError(500, out.error);
+    sendJSON(res, 200, { ok: true, written: out.written });
+  });
+}
+
+function handlePcCommand(req, res) {
+  if (req.method !== 'POST') return methodNotAllowed(res, ['POST']);
+  return readJSON(req).then(async (body) => {
+    if (!isStr(body.command, 1, 2000)) throw httpError(400, 'command — от 1 до 2000 символов');
+    const out = await toolsLib.execute(pcCtx(), 'run_command', { command: body.command.trim() });
+    sendJSON(res, 200, { ok: out.ok, exitCode: out.exitCode ?? null, ms: out.ms ?? null, stdout: out.stdout || '', stderr: out.stderr || '', error: out.error || null });
+  });
+}
+
 /* --------------------------------------- API: доступ (PIN, сессии, приглашения) */
 
 function handleAccess(req, res) {
@@ -2414,6 +2543,13 @@ const server = http.createServer((req, res) => {
   if (m) return done(() => handleMcpProbe(req, res, m[1]));
   m = pathname.match(/^\/api\/programs\/([A-Za-z0-9_-]+)\/open$/);
   if (m) return done(() => handleProgramOpen(req, res, m[1]));
+  if (pathname === '/api/pc/info') return done(() => handlePcInfo(req, res));
+  if (pathname === '/api/pc/screenshot') return done(() => handlePcScreenshot(req, res));
+  if (pathname === '/api/pc/input') return done(() => handlePcInput(req, res));
+  if (pathname === '/api/pc/processes') return done(() => handlePcProcesses(req, res));
+  if (pathname === '/api/pc/process-kill') return done(() => handlePcProcessKill(req, res));
+  if (pathname === '/api/pc/clipboard') return done(() => handlePcClipboard(req, res));
+  if (pathname === '/api/pc/command') return done(() => handlePcCommand(req, res));
   if (pathname === '/api/browser/show') return done(() => handleBrowserShow(req, res));
   if (pathname === '/api/browser/shot') return done(() => handleBrowserShot(req, res));
   if (pathname === '/api/browser/state') return done(() => handleBrowserState(req, res));
