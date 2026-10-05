@@ -843,21 +843,186 @@ async function tHttpRequest(ctx, args) {
   }
 }
 
-/** Безопасный калькулятор: только числа, операторы и белый список функций. */
+/** Безопасный калькулятор: свой парсер выражений, никакого eval/Function.
+ * Числа, + - * / % ^ (степень, правоассоц.), унарный минус, скобки,
+ * функции sqrt sin cos tan abs round floor ceil log exp pow min max, константы pi e. */
+const CALC_FUNCS = {
+  sqrt: (a) => Math.sqrt(a[0]),
+  sin: (a) => Math.sin(a[0]),
+  cos: (a) => Math.cos(a[0]),
+  tan: (a) => Math.tan(a[0]),
+  abs: (a) => Math.abs(a[0]),
+  round: (a) => Math.round(a[0]),
+  floor: (a) => Math.floor(a[0]),
+  ceil: (a) => Math.ceil(a[0]),
+  log: (a) => Math.log(a[0]),
+  exp: (a) => Math.exp(a[0]),
+  pow: (a) => Math.pow(a[0], a[1]),
+  min: (a) => Math.min(...a),
+  max: (a) => Math.max(...a),
+};
+
+function calcTokenize(s) {
+  const tokens = [];
+  let i = 0;
+  while (i < s.length) {
+    const c = s[i];
+    if (c === ' ' || c === '\t' || c === '\n') { i++; continue; }
+    if ((c >= '0' && c <= '9') || c === '.') {
+      let j = i;
+      while (j < s.length && ((s[j] >= '0' && s[j] <= '9') || s[j] === '.')) j++;
+      const num = Number(s.slice(i, j));
+      if (!Number.isFinite(num)) throw new Error('плохое число');
+      tokens.push({ t: 'num', v: num });
+      i = j;
+      continue;
+    }
+    if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')) {
+      let j = i;
+      while (j < s.length && ((s[j] >= 'a' && s[j] <= 'z') || (s[j] >= 'A' && s[j] <= 'Z'))) j++;
+      tokens.push({ t: 'word', v: s.slice(i, j).toLowerCase() });
+      i = j;
+      continue;
+    }
+    if ('+-*/%^,'.includes(c)) {
+      tokens.push({ t: c === ',' ? 'comma' : 'op', v: c });
+      i++;
+      continue;
+    }
+    if (c === '(' || c === ')') {
+      tokens.push({ t: c === '(' ? 'lp' : 'rp' });
+      i++;
+      continue;
+    }
+    throw new Error(`недопустимый символ «${c}»`);
+  }
+  return tokens;
+}
+
+function calcParse(tokens) {
+  let pos = 0;
+  const peek = () => tokens[pos];
+  const eat = () => tokens[pos++];
+  function parseExpr() {
+    let node = parseTerm();
+    for (;;) {
+      const t = peek();
+      if (t && t.t === 'op' && (t.v === '+' || t.v === '-')) {
+        eat();
+        node = { op: t.v, l: node, r: parseTerm() };
+      } else return node;
+    }
+  }
+  function parseTerm() {
+    let node = parseFactor();
+    for (;;) {
+      const t = peek();
+      if (t && t.t === 'op' && (t.v === '*' || t.v === '/' || t.v === '%')) {
+        eat();
+        node = { op: t.v, l: node, r: parseFactor() };
+      } else return node;
+    }
+  }
+  function parseFactor() {
+    let node = parseUnary();
+    const t = peek();
+    if (t && t.t === 'op' && t.v === '^') {
+      eat();
+      node = { op: '^', l: node, r: parseFactor() };
+    }
+    return node;
+  }
+  function parseUnary() {
+    const t = peek();
+    if (t && t.t === 'op' && (t.v === '+' || t.v === '-')) {
+      eat();
+      return { op: t.v === '-' ? 'neg' : 'pos', l: parseUnary() };
+    }
+    return parsePrimary();
+  }
+  function parsePrimary() {
+    const t = peek();
+    if (!t) throw new Error('неожиданный конец выражения');
+    if (t.t === 'num') { eat(); return { num: t.v }; }
+    if (t.t === 'word') {
+      eat();
+      if (t.v === 'pi') return { num: Math.PI };
+      if (t.v === 'e') return { num: Math.E };
+      if (!CALC_FUNCS[t.v]) throw new Error(`неизвестная функция «${t.v}»`);
+      const lp = peek();
+      if (!lp || lp.t !== 'lp') throw new Error(`после ${t.v} нужны скобки`);
+      eat();
+      const args = [];
+      if (peek() && peek().t !== 'rp') {
+        for (;;) {
+          args.push(parseExpr());
+          const nx = peek();
+          if (nx && nx.t === 'comma') { eat(); continue; }
+          break;
+        }
+      }
+      const rp = peek();
+      if (!rp || rp.t !== 'rp') throw new Error('нет закрывающей скобки');
+      eat();
+      return { fn: t.v, args };
+    }
+    if (t.t === 'lp') {
+      eat();
+      const node = parseExpr();
+      const rp = peek();
+      if (!rp || rp.t !== 'rp') throw new Error('нет закрывающей скобки');
+      eat();
+      return node;
+    }
+    throw new Error('неожиданный символ в выражении');
+  }
+  const node = parseExpr();
+  if (pos !== tokens.length) throw new Error('лишний текст в конце выражения');
+  return node;
+}
+
+function calcEval(node, depth = 0) {
+  if (depth > 100) throw new Error('слишком глубокое выражение');
+  if (node.num !== undefined) return node.num;
+  if (node.fn) {
+    const fn = CALC_FUNCS[node.fn];
+    const args = node.args.map((a) => calcEval(a, depth + 1));
+    if (node.fn === 'pow' && args.length !== 2) throw new Error('pow(a, b) — два аргумента');
+    if ((node.fn === 'min' || node.fn === 'max') && !args.length) throw new Error('min/max — хоть один аргумент');
+    if (!['pow', 'min', 'max'].includes(node.fn) && args.length !== 1) throw new Error(`${node.fn}(x) — один аргумент`);
+    const v = fn(args);
+    if (typeof v !== 'number' || !Number.isFinite(v)) throw new Error('нет числового результата');
+    return v;
+  }
+  if (node.op === 'neg') return -calcEval(node.l, depth + 1);
+  if (node.op === 'pos') return calcEval(node.l, depth + 1);
+  const l = calcEval(node.l, depth + 1);
+  const r = calcEval(node.r, depth + 1);
+  let v;
+  if (node.op === '+') v = l + r;
+  else if (node.op === '-') v = l - r;
+  else if (node.op === '*') v = l * r;
+  else if (node.op === '/') {
+    if (r === 0) throw new Error('деление на ноль');
+    v = l / r;
+  } else if (node.op === '%') {
+    if (r === 0) throw new Error('деление на ноль');
+    v = l % r;
+  } else if (node.op === '^') v = Math.pow(l, r);
+  else throw new Error('неизвестная операция');
+  if (typeof v !== 'number' || !Number.isFinite(v)) throw new Error('нет числового результата');
+  return v;
+}
+
 async function tCalc(ctx, args) {
   const raw = String(args.expr || '').trim().slice(0, 300);
   if (!raw) return DENIED('Пустое выражение');
-  const FUNCS = ['sqrt', 'sin', 'cos', 'tan', 'abs', 'round', 'floor', 'ceil', 'pow', 'min', 'max', 'log', 'exp'];
-  let expr = raw.replace(/\^/g, '**').replace(/\bpi\b/gi, 'Math.PI').replace(/\be\b/gi, 'Math.E');
-  for (const f of FUNCS) expr = expr.replace(new RegExp(`\\b${f}\\b`, 'g'), `Math.${f}`);
-  if (/[^0-9+\-*/().,\s*Math.\w]/.test(expr.replace(/Math\.\w+/g, ''))) return DENIED('В выражении разрешены только числа, операторы и функции: ' + FUNCS.join(', '));
   let value;
   try {
-    value = Function(`"use strict"; return (${expr});`)();
-  } catch {
-    return DENIED('Не удалось посчитать — проверь выражение');
+    value = calcEval(calcParse(calcTokenize(raw)));
+  } catch (e) {
+    return DENIED(`Не посчиталось: ${e.message}. Можно: числа, + - * / % ^, скобки, ${Object.keys(CALC_FUNCS).join(' ')}, pi, e`);
   }
-  if (typeof value !== 'number' || !Number.isFinite(value)) return DENIED('Результат — не число');
   return { ok: true, expr: raw, result: Math.round(value * 1e10) / 1e10 };
 }
 
